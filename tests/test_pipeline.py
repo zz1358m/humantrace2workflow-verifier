@@ -6,10 +6,10 @@ from collections import Counter
 
 import yaml
 
-from ht2w import agent, config, distill, loop, store, synth, verifier
-from ht2w.compile import compile_day
-from ht2w.compile.signals import build_spans, conversation_signals, screen_signals
-from ht2w.redact import is_private, redact
+from ht2wv import agent, config, distill, loop, store, synth, verifier
+from ht2wv.compile import compile_day
+from ht2wv.compile.signals import build_spans, conversation_signals, screen_signals
+from ht2wv.redact import is_private, redact
 
 CC = config.DEFAULTS["compile"]
 DAY = "2026-01-05"
@@ -169,8 +169,8 @@ def test_prompts_render_and_manual_backend_writes_task(home):
 
 
 def test_nothing_is_collected_without_consent(home, monkeypatch):
-    from ht2w import collect, consent
-    from ht2w.sources import agents
+    from ht2wv import collect, consent
+    from ht2wv.sources import agents
 
     called = []
     monkeypatch.setattr(agents, "collect", lambda *a, **k: called.append(k.get("only")) or {})
@@ -184,7 +184,7 @@ def test_nothing_is_collected_without_consent(home, monkeypatch):
 
 
 def test_history_parsing_dated_and_undated():
-    from ht2w.sources.extra import parse_history
+    from ht2wv.sources.extra import parse_history
 
     zsh = ": 1767600000:0;python train.py --seed 1\n: 1767600100:0;export API_KEY=sk-abcdefghijklmnopqrstuvwx\n"
     evs = parse_history(zsh, 1767700000, "ml5", 1767600050, 300, [])
@@ -196,11 +196,11 @@ def test_history_parsing_dated_and_undated():
 
 
 def test_setup_save_and_host_validation(home):
-    from ht2w import consent, setup_ui
+    from ht2wv import consent, setup_ui
 
-    st = setup_ui.save({"hosts": ["zhi@ml5", "-oProxyCommand=x", "bad host"], "decisions": {"ssh:zhi@ml5": "allow", "ssh-agents:zhi@ml5": "deny",
+    st = setup_ui.save({"hosts": ["alice@gpu1", "-oProxyCommand=x", "bad host"], "decisions": {"ssh:alice@gpu1": "allow", "ssh-agents:alice@gpu1": "deny",
                         "ssh:evil": "allow", "recent": "maybe"}, "backend": "manual", "doc_dirs": [" D:/w "]})
-    assert [h["host"] for h in st["hosts"]] == ["zhi@ml5"] and st["hosts"][0]["history"] == "allow" and st["backend"] == "manual"
-    assert consent.decisions() == {"ssh:zhi@ml5": "allow", "ssh-agents:zhi@ml5": "deny"}
+    assert [h["host"] for h in st["hosts"]] == ["alice@gpu1"] and st["hosts"][0]["history"] == "allow" and st["backend"] == "manual"
+    assert consent.decisions() == {"ssh:alice@gpu1": "allow", "ssh-agents:alice@gpu1": "deny"}
     assert config.load()["sources"]["doc_dirs"] == ["D:/w"]
     assert setup_ui.test_host("-v")["ok"] is False

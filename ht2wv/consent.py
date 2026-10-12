@@ -62,16 +62,16 @@ def discover(cfg: dict | None = None) -> list[Source]:
         out.append(Source(f"ssh-agents:{h}", f"服务器 {h} 上的 agent 对话", "~/.claude/projects 与 ~/.codex/sessions 里近几天的会话日志（只读）", has_ssh))
     if not hosts:
         out.append(Source("ssh:<host>", "服务器的 shell 历史与 agent 对话", "需要你先告诉我有哪些服务器", False,
-                          "用 `ht2w sources --add-host user@host` 添加，或写进 ~/.ssh/config"))
+                          "用 `ht2wv sources --add-host user@host` 添加，或写进 ~/.ssh/config"))
     wx = s.get("wx_export")
     out.append(Source("wx", "微信聊天记录", "你导出的聊天文件（csv / jsonl / txt）", bool(wx and _exists(wx)),
-                      "" if wx else "微信本地库是加密的，本工具不解密；请先用导出工具导出，再 `ht2w sources --wx-export <路径> --wx-me <昵称>`"))
+                      "" if wx else "微信本地库是加密的，本工具不解密；请先用导出工具导出，再 `ht2wv sources --wx-export <路径> --wx-me <昵称>`"))
     recent = home / "AppData/Roaming/Microsoft/Windows/Recent"
     out.append(Source("recent", "最近打开的文件", "Windows“最近使用”里的文件名与打开时间（不读文件内容）", recent.exists()))
     out.append(Source("git", "git 提交记录", "从 agent 对话的工作目录里发现的仓库，加上配置里列的：提交时间、标题、文件列表（不含 diff）",
                       shutil.which("git") is not None))
     out.append(Source("docs", "工作目录里的文档改动时间", "sources.doc_dirs 下文档类文件的文件名与修改时间（不读内容）", bool(s.get("doc_dirs")),
-                      "" if s.get("doc_dirs") else "用 `ht2w sources --add-doc-dir <目录>` 指定"))
+                      "" if s.get("doc_dirs") else "用 `ht2wv sources --add-doc-dir <目录>` 指定"))
     return out
 
 

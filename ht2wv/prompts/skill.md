@@ -77,7 +77,7 @@
 
 ## 自检（必须通过才算完成）
 
-运行 `python -m ht2w lint {{name}}`。它会检查结构，并在每个 case 上跑 verifier，
+运行 `python -m ht2wv lint {{name}}`。它会检查结构，并在每个 case 上跑 verifier，
 要求 accept 的 case 不被判 reject、reject 的 case 至少有一条检查脚本不通过或有明确指向它的 judge 条目。
 不通过就修到通过为止。连续 3 次因同一原因失败就停下，把原因写进 `evidence.md` 末尾。
 

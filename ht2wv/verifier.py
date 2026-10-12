@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Run a personal verifier against a task output.
 
-Self-contained on purpose (stdlib + pyyaml): `ht2w install` copies this file into the skill as
-`verify.py`, so the skill can check itself inside Claude Code / Codex without ht2w installed.
+Self-contained on purpose (stdlib + pyyaml): `ht2wv install` copies this file into the skill as
+`verify.py`, so the skill can check itself inside Claude Code / Codex without ht2wv installed.
 
 verifier.yaml
   skill, version, kind: [tags]

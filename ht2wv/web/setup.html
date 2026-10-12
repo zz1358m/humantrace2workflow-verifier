@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ht2w 设置</title>
+<title>ht2wv 设置</title>
 <style>
 :root { --bg:#f6f5f1; --card:#fff; --ink:#1d1d1b; --mute:#6b6a65; --line:#dedcd3; --accent:#1f5fbf; --ok:#1a7f4b; --bad:#b3261e; --chip:#eeece4; }
 @media (prefers-color-scheme: dark) {
@@ -51,8 +51,8 @@ pre#log { background: var(--card); border: 1px solid var(--line); border-radius:
 </head>
 <body>
 <main>
-  <h1>允许 ht2w 读取哪些记录？</h1>
-  <p class="lead">ht2w 从你已有的电脑使用记录里提炼工作流程和你的验收标准。下面每一项都要你明确勾选才会读取；没勾的不会碰。数据只存在本机 <code id="home"></code>。</p>
+  <h1>允许 ht2wv 读取哪些记录？</h1>
+  <p class="lead">ht2wv 从你已有的电脑使用记录里提炼工作流程和你的验收标准。下面每一项都要你明确勾选才会读取；没勾的不会碰。数据只存在本机 <code id="home"></code>。</p>
 
   <h2><span>1</span>连接你的服务器</h2>
   <p class="sub">先把常用的服务器加进来并测试连通。只使用密钥登录，不会询问或保存密码。</p>
@@ -72,7 +72,7 @@ pre#log { background: var(--card); border: 1px solid var(--line); border-radius:
   <div class="card">
     <div class="pad">
       <div class="name">微信聊天记录</div>
-      <div class="reads">微信本地数据库是加密的，ht2w 不会去解密。请用你信任的导出工具导出为 csv / jsonl / txt，再填路径。</div>
+      <div class="reads">微信本地数据库是加密的，ht2wv 不会去解密。请用你信任的导出工具导出为 csv / jsonl / txt，再填路径。</div>
       <div class="line" style="margin-top:8px">
         <input type="text" id="wx_export" placeholder="导出文件或文件夹的路径" spellcheck="false">
         <input type="text" id="wx_me" placeholder="你在导出里的昵称" style="flex:0 1 180px">
@@ -112,7 +112,7 @@ const T = "__TOKEN__";
 const $ = id => document.getElementById(id);
 let S = null, hostStatus = {};
 async function api(path, body) {
-  const r = await fetch(path, { method: body ? "POST" : "GET", headers: { "X-HT2W-Token": T, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+  const r = await fetch(path, { method: body ? "POST" : "GET", headers: { "X-HT2WV-Token": T, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
   return r.json();
 }
 function el(tag, attrs = {}, ...kids) {

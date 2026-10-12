@@ -39,7 +39,7 @@ def distill(days: list[str] | None = None, top: int = 3, only: list[str] | None 
     cfg = cfg or config.load()
     days = days or store.days()[-1:]
     if not days:
-        raise SystemExit("no traces yet: run `ht2w collect ...` or `ht2w record` first")
+        raise SystemExit("no traces yet: run `ht2wv collect ...` or `ht2wv record` first")
     report = {"days": days}
     if not skip_profile:
         res = profile(days, cfg)

@@ -30,7 +30,7 @@ def _print(obj):
 def main(argv=None) -> int:
     for s in (sys.stdout, sys.stderr):
         s.reconfigure(encoding="utf-8", errors="replace")
-    ap = argparse.ArgumentParser(prog="ht2w", description="Compile personal (workflow, verifier) skills from computer-use traces.")
+    ap = argparse.ArgumentParser(prog="ht2wv", description="Compile personal (workflow, verifier) skills from computer-use traces.")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("init", help="create the data dir and a default config.yaml")
@@ -63,7 +63,7 @@ def main(argv=None) -> int:
     p = sub.add_parser("collect", help="import a non-live source into the trace store")
     cs = p.add_subparsers(dest="source", required=True)
     for name, hlp in (("agents", "Claude Code + Codex conversation logs"), ("browser", "Chrome / Edge history"), ("git", "commits in sources.git_repos"),
-                      ("all", "agents + browser + git"), ("allowed", "every source you allowed in `ht2w sources`")):
+                      ("all", "agents + browser + git"), ("allowed", "every source you allowed in `ht2wv sources`")):
         q = cs.add_parser(name, help=hlp)
         q.add_argument("--days", type=float, default=1.0)
         q.add_argument("--since", help="YYYY-MM-DD (overrides --days)")

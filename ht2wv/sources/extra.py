@@ -62,7 +62,7 @@ def shell_remote(host: str, since: float, cfg: dict) -> dict:
     if not HOST_RE.match(host):
         return {"ok": False, "error": "invalid host"}
     tail = int(cfg["sources"]["shell_remote_tail"])
-    remote = ('for f in ~/.bash_history ~/.zsh_history; do [ -f "$f" ] && { echo "@@HT2W $(stat -c %Y "$f")"; tail -n '
+    remote = ('for f in ~/.bash_history ~/.zsh_history; do [ -f "$f" ] && { echo "@@HT2WV $(stat -c %Y "$f")"; tail -n '
               + str(tail) + ' "$f"; }; done; true')
     try:
         r = subprocess.run(_SSH + [host, remote], capture_output=True, timeout=60)
@@ -71,7 +71,7 @@ def shell_remote(host: str, since: float, cfg: dict) -> dict:
     if r.returncode != 0:
         return {"ok": False, "error": r.stderr.decode("utf-8", "replace").strip()[-200:] or f"ssh exit {r.returncode}"}
     evs = []
-    for chunk in r.stdout.decode("utf-8", "replace").split("@@HT2W ")[1:]:
+    for chunk in r.stdout.decode("utf-8", "replace").split("@@HT2WV ")[1:]:
         head, _, body = chunk.partition("\n")
         try:
             mtime = float(head.strip())

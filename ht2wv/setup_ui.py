@@ -1,4 +1,4 @@
-"""`ht2w setup`: a local questionnaire where the user connects their servers, ticks which sources may be
+"""`ht2wv setup`: a local questionnaire where the user connects their servers, ticks which sources may be
 read, and starts the analysis. Served on 127.0.0.1 only; every API call needs the per-launch token."""
 from __future__ import annotations
 
@@ -37,13 +37,13 @@ def test_host(host: str) -> dict:
     if not _HOST_RE.match(host or ""):
         return {"ok": False, "error": "格式应为 user@host 或 ~/.ssh/config 里的主机名"}
     try:
-        r = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", host, "echo ht2w-ok; ls -d ~/.claude/projects ~/.codex/sessions 2>/dev/null"],
+        r = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", host, "echo ht2wv-ok; ls -d ~/.claude/projects ~/.codex/sessions 2>/dev/null"],
                            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=25)
     except FileNotFoundError:
         return {"ok": False, "error": "本机没有 ssh 命令"}
     except subprocess.TimeoutExpired:
         return {"ok": False, "error": "连接超时"}
-    if "ht2w-ok" in r.stdout:
+    if "ht2wv-ok" in r.stdout:
         found = [n for n in ("claude", "codex") if f".{n}" in r.stdout]
         return {"ok": True, "detail": "可免密登录" + ("；发现 " + "、".join(found) + " 对话日志" if found else "；没有发现 agent 对话日志")}
     err = (r.stderr or "").strip().splitlines()[-1:] or ["ssh 失败"]
@@ -135,13 +135,13 @@ def serve(port: int = 0, open_browser: bool = True, token: str | None = None):
 
         def _ok(self) -> bool:
             host = (self.headers.get("Host") or "").split(":")[0]
-            return host in ("127.0.0.1", "localhost") and self.headers.get("X-HT2W-Token") == token
+            return host in ("127.0.0.1", "localhost") and self.headers.get("X-HT2WV-Token") == token
 
         def do_GET(self):
             path = self.path.split("?")[0]
             if path == "/":
                 if f"t={token}" not in self.path:
-                    return self._send({"error": "open the link printed by `ht2w setup`"}, 403)
+                    return self._send({"error": "open the link printed by `ht2wv setup`"}, 403)
                 return self._send(page.replace("__TOKEN__", token).encode("utf-8"), ctype="text/html; charset=utf-8")
             if not self._ok():
                 return self._send({"error": "forbidden"}, 403)

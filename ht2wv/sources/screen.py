@@ -235,7 +235,7 @@ class Recorder:
         from pynput import keyboard, mouse
 
         if not win32.AVAILABLE:
-            raise SystemExit("live recording currently supports Windows only; use `ht2w collect video` elsewhere")
+            raise SystemExit("live recording currently supports Windows only; use `ht2wv collect video` elsewhere")
         threads = [threading.Thread(target=self._poll, daemon=True)]
         if self.sc["screenshots"]:
             threads.append(threading.Thread(target=self._shooter, daemon=True))

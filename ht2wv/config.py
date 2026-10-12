@@ -54,7 +54,7 @@ DEFAULTS = {
 
 
 def home() -> Path:
-    env = os.environ.get("HT2W_HOME")
+    env = os.environ.get("HT2WV_HOME")
     return Path(env).expanduser() if env else Path(__file__).resolve().parent.parent / "data"
 
 
