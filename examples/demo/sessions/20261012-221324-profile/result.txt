@@ -1,0 +1,1 @@
+manual backend: open your agent in D:\Phd-3-1\相关工作\monitor-to-workflow-verifier\examples\demo and give it D:\Phd-3-1\相关工作\monitor-to-workflow-verifier\examples\demo\sessions\20261012-221324-profile\TASK.md

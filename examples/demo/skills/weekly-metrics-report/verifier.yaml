@@ -1,0 +1,47 @@
+skill: weekly-metrics-report
+version: 1
+kind: [writing, data]
+accept_threshold: 0.8
+inherits: ../../profile/acceptance-style.yaml
+policy: {}
+items:
+  - id: O1
+    layer: objective
+    claim: 报告里的每个数字都等于 csv 里的值，csv 里的每个值都出现在报告里
+    how: check
+    check: checks/o1_numbers.py
+    weight: 3
+    hard: true
+    confidence: 0.9
+    source: observed
+    evidence: ["2026-01-05:S001", "2026-01-05:S006", "2026-01-05:S002", "2026-01-05:S007", "2026-01-05:S011"]
+  - id: O2
+    layer: objective
+    claim: 产出恰好一份非空的 weekly_<周次>.md，周次与输入 csv 一致
+    how: check
+    check: checks/o2_file.py
+    weight: 1
+    hard: true
+    confidence: 0.8
+    source: observed
+    evidence: ["2026-01-05:S002", "2026-01-05:S007"]
+  - id: P1
+    layer: preference
+    claim: 末尾有一行“数据来源：”并写出输入 csv 的文件名
+    how: check
+    check: checks/p1_source.py
+    weight: 2
+    hard: false
+    confidence: 0.7
+    source: stated
+    evidence: ["2026-01-05:S012", "2026-01-05:S002", "2026-01-05:S007"]
+  - id: P2
+    layer: preference
+    claim: 每项指标单独一个列表项，列表项数等于 csv 的指标数
+    how: check
+    check: checks/p2_bullets.py
+    weight: 1
+    hard: false
+    confidence: 0.4
+    source: observed
+    evidence: ["2026-01-05:S002", "2026-01-05:S007"]

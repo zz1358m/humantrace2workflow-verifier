@@ -1,0 +1,13 @@
+{"kind": "crosscheck", "t0": 1767575475.0, "t1": 1767575490.0, "work": "weekly_W40.md - Typora", "work_app": "Typora.exe", "consulted": "metrics_W40.csv - Excel", "consulted_app": "EXCEL.EXE", "dwell": 15.0, "shot": null, "note": "looked, changed nothing there, returned", "id": "S001"}
+{"kind": "rework", "t0": 1767575513.0, "t1": 1767575803.0, "path": "D:\\work\\reports\\weekly_W40.md", "gap_min": 4.8, "rejected_sha": "77522f3628668eee", "kept_sha": "95def80da1d1c40d", "note": "earlier save was not good enough for its author: rejected/accepted pair", "id": "S002"}
+{"kind": "undo_burst", "t0": 1767575722.0, "t1": 1767575724.0, "app": "Typora.exe", "title": "weekly_W40.md - Typora", "n": 2, "retyped_after": 60, "id": "S003"}
+{"kind": "pre_commit_review", "t0": 1767575780.0, "t1": 1767575802.0, "app": "Typora.exe", "title": "weekly_W40.md - Typora", "commit": "ctrl+s", "seconds": 22.0, "scrolls": 7, "id": "S004"}
+{"kind": "hesitation", "t0": 1767575830.0, "t1": 1767575850.0, "app": "OUTLOOK.EXE", "title": "周报 W40 - 邮件", "seconds": 20.0, "id": "S005"}
+{"kind": "crosscheck", "t0": 1767594075.0, "t1": 1767594090.0, "work": "weekly_W41.md - Typora", "work_app": "Typora.exe", "consulted": "metrics_W41.csv - Excel", "consulted_app": "EXCEL.EXE", "dwell": 15.0, "shot": null, "note": "looked, changed nothing there, returned", "id": "S006"}
+{"kind": "rework", "t0": 1767594113.0, "t1": 1767594403.0, "path": "D:\\work\\reports\\weekly_W41.md", "gap_min": 4.8, "rejected_sha": "2a2545fba9df66bd", "kept_sha": "80a6f0eb2ab744bb", "note": "earlier save was not good enough for its author: rejected/accepted pair", "id": "S007"}
+{"kind": "undo_burst", "t0": 1767594322.0, "t1": 1767594324.0, "app": "Typora.exe", "title": "weekly_W41.md - Typora", "n": 2, "retyped_after": 60, "id": "S008"}
+{"kind": "pre_commit_review", "t0": 1767594380.0, "t1": 1767594402.0, "app": "Typora.exe", "title": "weekly_W41.md - Typora", "commit": "ctrl+s", "seconds": 22.0, "scrolls": 7, "id": "S009"}
+{"kind": "hesitation", "t0": 1767594430.0, "t1": 1767594450.0, "app": "OUTLOOK.EXE", "title": "周报 W41 - 邮件", "seconds": 20.0, "id": "S010"}
+{"kind": "correction", "t0": 1767600040.0, "t1": 1767600070.0, "agent": "claude", "session": "demo0001", "quote": "不对，不要形容词和总结性的话，只列数字。另外数字你核对过 csv 吗？", "after_tools": ["Read", "Write"], "latency_s": 30.0, "id": "S011"}
+{"kind": "verify_request", "t0": 1767600110.0, "t1": 1767600130.0, "agent": "claude", "session": "demo0001", "quote": "最后加一行数据来源，写文件名", "note": "user asked for proof/checking instead of taking the result on trust", "id": "S012"}
+{"kind": "acceptance", "t0": 1767600160.0, "t1": 1767600175.0, "agent": "claude", "session": "demo0001", "quote": "可以", "latency_s": 15.0, "id": "S013"}

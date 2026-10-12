@@ -1,0 +1,59 @@
+{"t": 1767575395.0, "src": "synth", "k": "file", "op": "modified", "path": "D:\\work\\reports\\metrics_W40.csv", "sha": "61f9244f3d816750", "size": 58}
+{"t": 1767575400.0, "src": "synth", "k": "win", "app": "EXCEL.EXE", "title": "metrics_W40.csv - Excel"}
+{"t": 1767575408.0, "src": "synth", "k": "key", "combo": "ctrl+c"}
+{"t": 1767575408.2, "src": "synth", "k": "clip", "n": 24, "h": "aa11", "preview": "1284 48210 2.1"}
+{"t": 1767575412.0, "src": "synth", "k": "win", "app": "Typora.exe", "title": "weekly_W40.md - Typora"}
+{"t": 1767575414.0, "src": "synth", "k": "key", "combo": "ctrl+v"}
+{"t": 1767575416.0, "src": "synth", "k": "type", "n": 120, "bs": 4, "t1": 1767575470.0}
+{"t": 1767575475.0, "src": "synth", "k": "win", "app": "EXCEL.EXE", "title": "metrics_W40.csv - Excel"}
+{"t": 1767575477.0, "src": "synth", "k": "scroll", "n": 3, "t1": 1767575480.0}
+{"t": 1767575490.0, "src": "synth", "k": "win", "app": "Typora.exe", "title": "weekly_W40.md - Typora"}
+{"t": 1767575492.0, "src": "synth", "k": "type", "n": 30, "bs": 2, "t1": 1767575510.0}
+{"t": 1767575512.0, "src": "synth", "k": "key", "combo": "ctrl+s"}
+{"t": 1767575513.0, "src": "synth", "k": "file", "op": "modified", "path": "D:\\work\\reports\\weekly_W40.md", "sha": "77522f3628668eee", "size": 68}
+{"t": 1767575520.0, "src": "synth", "k": "win", "app": "chrome.exe", "title": "Inbox - Gmail - Google Chrome"}
+{"t": 1767575700.0, "src": "synth", "k": "win", "app": "EXCEL.EXE", "title": "metrics_W40.csv - Excel"}
+{"t": 1767575720.0, "src": "synth", "k": "win", "app": "Typora.exe", "title": "weekly_W40.md - Typora"}
+{"t": 1767575722.0, "src": "synth", "k": "key", "combo": "ctrl+z"}
+{"t": 1767575724.0, "src": "synth", "k": "key", "combo": "ctrl+z"}
+{"t": 1767575726.0, "src": "synth", "k": "type", "n": 60, "bs": 40, "t1": 1767575780.0}
+{"t": 1767575782.0, "src": "synth", "k": "scroll", "n": 4, "t1": 1767575788.0}
+{"t": 1767575792.0, "src": "synth", "k": "scroll", "n": 3, "t1": 1767575798.0}
+{"t": 1767575802.0, "src": "synth", "k": "key", "combo": "ctrl+s"}
+{"t": 1767575803.0, "src": "synth", "k": "file", "op": "modified", "path": "D:\\work\\reports\\weekly_W40.md", "sha": "95def80da1d1c40d", "size": 65}
+{"t": 1767575810.0, "src": "synth", "k": "win", "app": "OUTLOOK.EXE", "title": "周报 W40 - 邮件"}
+{"t": 1767575815.0, "src": "synth", "k": "type", "n": 40, "bs": 0, "t1": 1767575830.0}
+{"t": 1767575850.0, "src": "synth", "k": "key", "combo": "ctrl+enter"}
+{"t": 1767593995.0, "src": "synth", "k": "file", "op": "modified", "path": "D:\\work\\reports\\metrics_W41.csv", "sha": "afcfc4add2927904", "size": 58}
+{"t": 1767594000.0, "src": "synth", "k": "win", "app": "EXCEL.EXE", "title": "metrics_W41.csv - Excel"}
+{"t": 1767594008.0, "src": "synth", "k": "key", "combo": "ctrl+c"}
+{"t": 1767594008.2, "src": "synth", "k": "clip", "n": 24, "h": "aa11", "preview": "1410 51730 1.8"}
+{"t": 1767594012.0, "src": "synth", "k": "win", "app": "Typora.exe", "title": "weekly_W41.md - Typora"}
+{"t": 1767594014.0, "src": "synth", "k": "key", "combo": "ctrl+v"}
+{"t": 1767594016.0, "src": "synth", "k": "type", "n": 120, "bs": 4, "t1": 1767594070.0}
+{"t": 1767594075.0, "src": "synth", "k": "win", "app": "EXCEL.EXE", "title": "metrics_W41.csv - Excel"}
+{"t": 1767594077.0, "src": "synth", "k": "scroll", "n": 3, "t1": 1767594080.0}
+{"t": 1767594090.0, "src": "synth", "k": "win", "app": "Typora.exe", "title": "weekly_W41.md - Typora"}
+{"t": 1767594092.0, "src": "synth", "k": "type", "n": 30, "bs": 2, "t1": 1767594110.0}
+{"t": 1767594112.0, "src": "synth", "k": "key", "combo": "ctrl+s"}
+{"t": 1767594113.0, "src": "synth", "k": "file", "op": "modified", "path": "D:\\work\\reports\\weekly_W41.md", "sha": "2a2545fba9df66bd", "size": 68}
+{"t": 1767594120.0, "src": "synth", "k": "win", "app": "chrome.exe", "title": "Inbox - Gmail - Google Chrome"}
+{"t": 1767594300.0, "src": "synth", "k": "win", "app": "EXCEL.EXE", "title": "metrics_W41.csv - Excel"}
+{"t": 1767594320.0, "src": "synth", "k": "win", "app": "Typora.exe", "title": "weekly_W41.md - Typora"}
+{"t": 1767594322.0, "src": "synth", "k": "key", "combo": "ctrl+z"}
+{"t": 1767594324.0, "src": "synth", "k": "key", "combo": "ctrl+z"}
+{"t": 1767594326.0, "src": "synth", "k": "type", "n": 60, "bs": 40, "t1": 1767594380.0}
+{"t": 1767594382.0, "src": "synth", "k": "scroll", "n": 4, "t1": 1767594388.0}
+{"t": 1767594392.0, "src": "synth", "k": "scroll", "n": 3, "t1": 1767594398.0}
+{"t": 1767594402.0, "src": "synth", "k": "key", "combo": "ctrl+s"}
+{"t": 1767594403.0, "src": "synth", "k": "file", "op": "modified", "path": "D:\\work\\reports\\weekly_W41.md", "sha": "80a6f0eb2ab744bb", "size": 65}
+{"t": 1767594410.0, "src": "synth", "k": "win", "app": "OUTLOOK.EXE", "title": "周报 W41 - 邮件"}
+{"t": 1767594415.0, "src": "synth", "k": "type", "n": 40, "bs": 0, "t1": 1767594430.0}
+{"t": 1767594450.0, "src": "synth", "k": "key", "combo": "ctrl+enter"}
+{"t": 1767600000.0, "src": "synth", "k": "prompt", "agent": "claude", "session": "demo0001", "cwd": "D:\\work\\reports", "text": "根据 metrics_W41.csv 帮我起草周报"}
+{"t": 1767600040.0, "src": "synth", "k": "reply", "agent": "claude", "session": "demo0001", "text": "已起草周报：本周各项指标表现亮眼，注册量大幅增长……", "tools": ["Read", "Write"]}
+{"t": 1767600070.0, "src": "synth", "k": "prompt", "agent": "claude", "session": "demo0001", "text": "不对，不要形容词和总结性的话，只列数字。另外数字你核对过 csv 吗？"}
+{"t": 1767600110.0, "src": "synth", "k": "reply", "agent": "claude", "session": "demo0001", "text": "已改为三条数字，并逐项对照 csv。", "tools": ["Read", "Edit"]}
+{"t": 1767600130.0, "src": "synth", "k": "prompt", "agent": "claude", "session": "demo0001", "text": "最后加一行数据来源，写文件名"}
+{"t": 1767600160.0, "src": "synth", "k": "reply", "agent": "claude", "session": "demo0001", "text": "已添加“数据来源：metrics_W41.csv”。", "tools": ["Edit"]}
+{"t": 1767600175.0, "src": "synth", "k": "prompt", "agent": "claude", "session": "demo0001", "text": "可以"}

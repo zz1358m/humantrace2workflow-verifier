@@ -1,0 +1,15 @@
+tasks:
+  - name: weekly-metrics-report
+    title: 根据当周指标 csv 写周报并邮件发出
+    kind: [writing, data]
+    intent: 把当周三项指标准确、不加修饰地报给收件人
+    occurrences:
+      - {day: "2026-01-05", t0: "09:10:00", t1: "09:17:30", note: W40}
+      - {day: "2026-01-05", t0: "14:20:00", t1: "14:27:30", note: W41}
+      - {day: "2026-01-05", t0: "16:00:00", t1: "16:02:55", note: 让 claude 起草 W41，打回两次后接受}
+    variables: 周次；当周的 metrics_<周次>.csv
+    invariants: 三项指标各一行；末尾一行数据来源；文件名 weekly_<周次>.md
+    signals: [S001, S002, S003, S004, S005, S006, S007, S008, S009, S010, S011, S012, S013]
+    has_artifacts: true
+    score: 8
+    why: 一天内出现三次，输入输出都是文件，两次返工各留下一对被丢弃与被保留的版本
