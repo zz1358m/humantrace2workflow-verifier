@@ -12,9 +12,16 @@
 
 ## 安装
 
+需要 Python 3.10+；蒸馏那一步还需要本机已登录的 Claude Code 或 Codex CLI。
+
 ```bash
-pip install -e ".[screen,video,dev]"
+git clone https://github.com/zz1358m/humantrace2workflow.git
+cd humantrace2workflow
+pip install -e ".[screen,video]"
+ht2w init
 ```
+
+`screen` 是实时录屏（仅 Windows），`video` 是录屏视频导入；只用对话日志和浏览器历史的话 `pip install -e .` 就够。
 
 ## 用法
 
