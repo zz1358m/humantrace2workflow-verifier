@@ -23,16 +23,33 @@ ht2w init
 
 `screen` 是实时录屏（仅 Windows），`video` 是录屏视频导入；只用对话日志和浏览器历史的话 `pip install -e .` 就够。
 
-## 用法
+## 最快的用法
+
+```bash
+ht2w setup
+```
+
+会在浏览器里打开一个只在本机可访问的问卷页面，分四步：
+
+1. **连接服务器**：填 `user@host`，点“测试连接”。只用密钥登录；连不上时页面会给出在你自己终端里装公钥的命令。
+2. **勾选本机记录**：Claude Code / Codex 对话、Chrome / Edge 历史、本机 shell 历史、最近打开的文件、git 提交。每项写明会读什么。
+3. **填路径的来源**：微信导出文件、工作目录。
+4. **交给 coding agent 分析**：选天数和后端，点“保存并开始分析”，页面显示采集 → 编译 → 蒸馏的进度。
+
+没勾的来源不会被读取。同样的事也可以用命令行做：`ht2w sources --ask`，然后 `ht2w run --days 1`。
+
+不需要录屏。录屏（`ht2w record`）和录屏视频（`ht2w collect video`）仍然可用，能多拿到撤销、返工、切窗口核对这类信号。
+
+## 分步用法
 
 ```bash
 ht2w init                          # 建数据目录 data/ 和 config.yaml
 
 # 1. 采集（按需选）
-ht2w record --watch D:\work        # 实时录屏，Ctrl+C 停；--watch 的目录里文件保存会留版本
-ht2w collect all --days 1          # Claude Code / Codex 对话日志 + Chrome / Edge 历史 + git
-ht2w collect video rec.mp4         # 已有的录屏视频
-ht2w collect chat wx导出.csv --me 我的昵称
+ht2w sources                       # 列出来源和授权状态；--ask 逐项询问，--allow/--deny <id>，--add-host user@host
+ht2w collect allowed --days 1      # 采集所有已授权的来源
+ht2w record --watch D:\work        # 可选：实时录屏，Ctrl+C 停
+ht2w collect video rec.mp4         # 可选：已有的录屏视频
 ht2w mark "刚才那版数字抄错了"       # 随手标一句
 
 # 2. 编译成时间线与信号（不调模型）
@@ -62,6 +79,8 @@ ht2w eval weekly-report
 - 不记录按键内容，只记次数和快捷键组合。
 - 密码管理器、无痕窗口等命中 denylist 的窗口不截图、不留标题；文本入库前脱敏。
 - 微信：只导入你自己导出的聊天文件，不读它的本地加密数据库。
+- 服务器：只走密钥 ssh、只读；不读终端软件（Xshell、PuTTY）里保存的会话和密码，主机由你自己填。
+- 每个来源都要先授权（`data/consent.yaml`），未决定等同于不允许。
 - **蒸馏时轨迹会被你选的 agent（Claude Code / Codex）读取，也就是发给对应的模型服务商。** 想先看会发什么，
   用 `--backend manual`：只生成任务书，不启动会话。
 

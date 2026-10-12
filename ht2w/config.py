@@ -40,6 +40,12 @@ DEFAULTS = {
             "edge": "~/AppData/Local/Microsoft/Edge/User Data/Default/History",
         },
         "git_repos": [],
+        "ssh_hosts": [],  # user@host entries; hosts in ~/.ssh/config are picked up as well
+        "shell_remote_tail": 5000,  # lines of each history file fetched from a server
+        "shell_undated_tail": 300,  # history without timestamps: keep only the last N commands
+        "wx_export": None,  # path to chat logs you exported yourself
+        "wx_me": None,  # your display name in that export
+        "doc_dirs": [],
         "msg_max_chars": 4000,  # per user message kept in the trace
     },
     "compile": {"episode_gap_s": 300, "glance_max_s": 60, "rework_min_gap_s": 60, "rework_max_gap_s": 7200},

@@ -18,13 +18,13 @@ from ..redact import is_private, redact
 _CHROME_EPOCH = 11644473600  # seconds between 1601-01-01 and 1970-01-01
 
 
-def browsers(since: float, cfg: dict | None = None) -> dict[str, int]:
+def browsers(since: float, cfg: dict | None = None, only: tuple[str, ...] | None = None) -> dict[str, int]:
     cfg = cfg or config.load()
     deny, extra = cfg["privacy"]["deny"], cfg["privacy"]["redact_extra"]
     out = {}
     for name, path in cfg["sources"]["browsers"].items():
         src = config.expand(path)
-        if not src.exists():
+        if not src.exists() or (only is not None and name not in only):
             continue
         with tempfile.TemporaryDirectory() as td:
             tmp = Path(td) / "History"
@@ -51,10 +51,10 @@ def browsers(since: float, cfg: dict | None = None) -> dict[str, int]:
     return out
 
 
-def git(since: float, cfg: dict | None = None) -> int:
+def git(since: float, cfg: dict | None = None, repos: list[str] | None = None) -> int:
     cfg = cfg or config.load()
     evs = []
-    for repo in cfg["sources"]["git_repos"]:
+    for repo in repos if repos is not None else cfg["sources"]["git_repos"]:
         repo = config.expand(repo)
         r = subprocess.run(
             ["git", "-C", str(repo), "log", f"--since=@{int(since)}", "--name-only", "--pretty=format:\x1e%H\x1f%at\x1f%s"],

@@ -41,10 +41,29 @@ def main(argv=None) -> int:
     p = sub.add_parser("mark", help="drop an explicit note into the trace (e.g. what was wrong just now)")
     p.add_argument("text")
 
+    p = sub.add_parser("setup", help="open the local questionnaire: connect servers, tick sources, start the analysis")
+    p.add_argument("--port", type=int, default=0)
+    p.add_argument("--no-browser", action="store_true")
+    p.add_argument("--token", help=argparse.SUPPRESS)
+    p = sub.add_parser("sources", help="list data sources and set which ones may be read")
+    p.add_argument("--ask", action="store_true", help="go through the sources one by one")
+    p.add_argument("--allow", action="append", default=[], metavar="ID")
+    p.add_argument("--deny", action="append", default=[], metavar="ID")
+    p.add_argument("--add-host", action="append", default=[], metavar="USER@HOST", help="a server reachable by key-based ssh")
+    p.add_argument("--add-doc-dir", action="append", default=[], metavar="DIR")
+    p.add_argument("--wx-export", metavar="PATH", help="chat logs you exported yourself")
+    p.add_argument("--wx-me", metavar="NAME", help="your display name in that export")
+    p = sub.add_parser("run", help="collect allowed sources -> compile -> distill, in one go")
+    p.add_argument("--days", type=float, default=1.0)
+    p.add_argument("--top", type=int, default=3)
+    p.add_argument("--parallel", type=int, default=1)
+    p.add_argument("--backend")
+    p.add_argument("--model")
+
     p = sub.add_parser("collect", help="import a non-live source into the trace store")
     cs = p.add_subparsers(dest="source", required=True)
     for name, hlp in (("agents", "Claude Code + Codex conversation logs"), ("browser", "Chrome / Edge history"), ("git", "commits in sources.git_repos"),
-                      ("all", "agents + browser + git")):
+                      ("all", "agents + browser + git"), ("allowed", "every source you allowed in `ht2w sources`")):
         q = cs.add_parser(name, help=hlp)
         q.add_argument("--days", type=float, default=1.0)
         q.add_argument("--since", help="YYYY-MM-DD (overrides --days)")
@@ -127,8 +146,48 @@ def main(argv=None) -> int:
         w = store.Writer()
         w.emit("user", "mark", text=a.text)
         w.close()
+    elif a.cmd == "setup":
+        from . import setup_ui
+
+        setup_ui.serve(a.port, not a.no_browser, a.token)
+    elif a.cmd == "sources":
+        from . import consent
+
+        for h in a.add_host:
+            consent.set_config(["sources", "ssh_hosts"], h, append=True)
+        for d in a.add_doc_dir:
+            consent.set_config(["sources", "doc_dirs"], d, append=True)
+        if a.wx_export:
+            consent.set_config(["sources", "wx_export"], a.wx_export)
+        if a.wx_me:
+            consent.set_config(["sources", "wx_me"], a.wx_me)
+        cfg = config.load()
+        if a.allow or a.deny:
+            consent.decide({**{i: "allow" for i in a.allow}, **{i: "deny" for i in a.deny}})
+        if a.ask:
+            consent.ask(cfg)
+        for line in consent.status_lines(cfg):
+            print(line)
+    elif a.cmd == "run":
+        from . import collect, distill
+        from .compile import compile_day
+
+        for k in ("backend", "model"):
+            if getattr(a, k):
+                cfg["agent"][k] = getattr(a, k)
+        since = time.time() - a.days * 86400
+        rep = {"collect": collect.collect_allowed(since, cfg)}
+        days = [d for d in store.days() if d >= store.day_of(since)]
+        rep["compile"] = [compile_day(d, cfg) for d in days]
+        rep["distill"] = distill.distill(days, a.top, None, a.parallel, False, cfg)
+        _print(rep)
     elif a.cmd == "collect":
         from .sources import agents, misc, video
+
+        if a.source == "allowed":
+            from . import collect
+
+            _print(collect.collect_allowed(_since(a), cfg))
 
         if a.source in ("agents", "all"):
             _print({"agents": agents.collect(_since(a), cfg)})

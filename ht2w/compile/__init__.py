@@ -7,7 +7,7 @@ from collections import Counter
 from .. import config, store
 from .signals import build_spans, detect
 
-_ICON = {"prompt": "🧑→🤖", "reply": "🤖", "abort": "⛔", "deny": "🚫", "visit": "🌐", "msg": "💬", "commit": "📦", "mark": "📌", "file": "💾"}
+_ICON = {"prompt": "🧑→🤖", "reply": "🤖", "abort": "⛔", "deny": "🚫", "visit": "🌐", "msg": "💬", "commit": "📦", "mark": "📌", "file": "💾", "cmd": "⌨", "open": "📂"}
 
 
 def _clip(s: str, n: int) -> str:
@@ -53,6 +53,10 @@ def _event_line(e: dict) -> str | None:
         return f"- {ts} {ic} {e['repo']} {e['sha']} {_clip(e['subject'], 100)} ({len(e.get('files', []))} files)"
     if k == "mark":
         return f"- {ts} {ic} MARK: {e.get('text', '')}"
+    if k == "cmd":
+        return f"- {'~' if e.get('undated') else ''}{ts} {ic} [{e['host']}] {_clip(e['cmd'], 200)}"
+    if k == "open":
+        return f"- {ts} {ic} opened {_clip(e['name'], 100)}"
     if k == "file":
         return f"- {ts} {ic} {e['op']} {e['path']}" + (f"  blob:{e['sha']}" if e.get("sha") else "")
     return None
@@ -105,7 +109,8 @@ def compile_day(day: str, cfg: dict | None = None) -> dict:
            f"- span: {store.hms(events[0]['t'])} – {store.hms(events[-1]['t'])}",
            "- off-mainline signals: " + (", ".join(f"{k} {v}" for k, v in kinds.most_common()) or "none"),
            "", "Raw data: `events.jsonl` (everything), `signals.jsonl` (⚑ rows in full), `shots/` (frames), `blobs/` (file versions by sha).",
-           "⚑ rows are heuristic candidates, not conclusions.", ""]
+           "⚑ rows are heuristic candidates, not conclusions. ⌨ rows with a `~` time come from history files without timestamps: "
+           "their order is real, their time is not.", ""]
     hour = None
     for t, line in rows:
         h = store.hms(t)[:2]

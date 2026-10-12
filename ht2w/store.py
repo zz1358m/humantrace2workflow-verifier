@@ -20,6 +20,8 @@ kinds
   msg      chat message (exported IM logs)     peer, me (bool), text
   commit   git commit                          repo, sha, subject, files
   mark     explicit user annotation            text
+  cmd      shell command                       host, cmd, undated? (order known, time is not)
+  open     file opened (OS recent list)        name
 """
 from __future__ import annotations
 

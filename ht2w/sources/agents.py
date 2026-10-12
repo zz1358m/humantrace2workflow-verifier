@@ -127,20 +127,25 @@ def codex(root: Path, since: float, cap: int, extra) -> list[dict]:
     return evs
 
 
-def collect(since: float, cfg: dict | None = None) -> dict[str, int]:
+def dedupe(events: list[dict]) -> list[dict]:
+    seen, out = set(), []
+    for e in events:  # resumed/forked sessions repeat their history
+        key = (e["k"], round(e["t"]), e.get("text", "")[:120])
+        if key not in seen:
+            seen.add(key)
+            out.append(e)
+    return out
+
+
+def collect(since: float, cfg: dict | None = None, only: tuple[str, ...] = ("claude", "codex")) -> dict[str, int]:
     cfg = cfg or config.load()
     s = cfg["sources"]
     extra = cfg["privacy"]["redact_extra"]
     out = {}
     for name, fn, key in (("claude", claude_code, "claude_dir"), ("codex", codex, "codex_dir")):
         root = config.expand(s[key])
-        if root.exists():
-            seen, evs = set(), []
-            for e in fn(root, since, s["msg_max_chars"], extra):  # resumed/forked sessions repeat their history
-                key = (e["k"], round(e["t"]), e.get("text", "")[:120])
-                if key not in seen:
-                    seen.add(key)
-                    evs.append(e)
+        if name in only and root.exists():
+            evs = dedupe(fn(root, since, s["msg_max_chars"], extra))
             store.replace_source(name, evs)
             out[name] = len(evs)
     return out

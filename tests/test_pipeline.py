@@ -166,3 +166,41 @@ def test_prompts_render_and_manual_backend_writes_task(home):
     out = distill.build_skill("x", cfg)
     assert not out["lint_ok"] and "skills/x/" in (home / "sessions" / out["session"] / "TASK.md").read_text(encoding="utf-8")
     assert agent.spent() == 0
+
+
+def test_nothing_is_collected_without_consent(home, monkeypatch):
+    from ht2w import collect, consent
+    from ht2w.sources import agents
+
+    called = []
+    monkeypatch.setattr(agents, "collect", lambda *a, **k: called.append(k.get("only")) or {})
+    cfg = config.load()
+    cfg["sources"]["claude_dir"] = str(home)  # exists, so the source is available
+    rep = collect.collect_allowed(0, cfg)
+    assert called == [] and "claude" in rep["skipped_not_allowed"]
+    consent.decide({"claude": "allow", "codex": "deny"})
+    collect.collect_allowed(0, cfg)
+    assert called == [("claude",)]
+
+
+def test_history_parsing_dated_and_undated():
+    from ht2w.sources.extra import parse_history
+
+    zsh = ": 1767600000:0;python train.py --seed 1\n: 1767600100:0;export API_KEY=sk-abcdefghijklmnopqrstuvwx\n"
+    evs = parse_history(zsh, 1767700000, "ml5", 1767600050, 300, [])
+    assert len(evs) == 1 and "sk-abc" not in evs[0]["cmd"] and "undated" not in evs[0]
+    bash = "#1767600000\nls\n#1767600200\nnvidia-smi\n"
+    assert [e["cmd"] for e in parse_history(bash, 0, "h", 0, 300, [])] == ["ls", "nvidia-smi"]
+    plain = parse_history("a\nb\nc\n", 1000.0, "h", 0, 2, [])
+    assert [e["cmd"] for e in plain] == ["b", "c"] and all(e["undated"] for e in plain) and plain[0]["t"] < plain[1]["t"] < 1000
+
+
+def test_setup_save_and_host_validation(home):
+    from ht2w import consent, setup_ui
+
+    st = setup_ui.save({"hosts": ["zhi@ml5", "-oProxyCommand=x", "bad host"], "decisions": {"ssh:zhi@ml5": "allow", "ssh-agents:zhi@ml5": "deny",
+                        "ssh:evil": "allow", "recent": "maybe"}, "backend": "manual", "doc_dirs": [" D:/w "]})
+    assert [h["host"] for h in st["hosts"]] == ["zhi@ml5"] and st["hosts"][0]["history"] == "allow" and st["backend"] == "manual"
+    assert consent.decisions() == {"ssh:zhi@ml5": "allow", "ssh-agents:zhi@ml5": "deny"}
+    assert config.load()["sources"]["doc_dirs"] == ["D:/w"]
+    assert setup_ui.test_host("-v")["ok"] is False

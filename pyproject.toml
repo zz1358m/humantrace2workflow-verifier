@@ -21,7 +21,7 @@ ht2w = "ht2w.cli:main"
 include = ["ht2w*"]
 
 [tool.setuptools.package-data]
-ht2w = ["prompts/*.md"]
+ht2w = ["prompts/*.md", "web/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

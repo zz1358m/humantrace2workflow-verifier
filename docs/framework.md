@@ -32,6 +32,11 @@
 
 ## ① 采集：一种事件格式，多个来源
 
+**先授权，再读取。** `ht2w setup` 打开本机问卷页面（[setup_ui.py](../ht2w/setup_ui.py)）：用户先添加并测试服务器连接，
+再逐项勾选来源，最后一键启动采集 → 编译 → 蒸馏。决定存在 `consent.yaml`，未决定等同于不允许；
+发现阶段只检查路径或主机是否存在，不打开数据（[consent.py](../ht2w/consent.py)）。
+录屏不是必需的：只靠下面表里“不用录制”的来源就能跑完整条管线，只是屏幕类信号（核对、撤销、返工）拿不到。
+
 每个来源都往 `traces/<day>/events.jsonl` 追加 `{t, src, k, ...}`。事件种类见 [store.py](../ht2w/store.py) 顶部。
 
 | 来源 | 命令 | 记什么 | 不记什么 |
@@ -42,7 +47,12 @@
 | 浏览器 | `ht2w collect browser` | 访问时间、标题、URL 的 host 加 path | query string（常带 token 和搜索词） |
 | 聊天导出 | `ht2w collect chat <导出文件> --me <昵称>` | 时间、对方、是否本人、文本 | **不读微信的本地加密数据库**；只接受用户自己导出的 csv / jsonl / txt |
 | 时间日志 | `ht2w collect timelog x.csv` | ManicTime / ActivityWatch 一类的导出 → 窗口区间 | |
-| git | `ht2w collect git` | 提交时间、标题、文件列表 | diff |
+| git | 授权后自动 | 从 agent 对话的工作目录向上找到的仓库：提交时间、标题、文件列表 | diff |
+| 本机 shell 历史 | 授权后自动 | PowerShell / bash / zsh 历史，脱敏 | |
+| 服务器 shell 历史 | 授权后自动 | 经密钥 ssh 只读 `~/.bash_history`、`~/.zsh_history` 末尾若干行。没有时间戳的历史只保留顺序，标 `undated` | 密码；终端软件保存的会话 |
+| 服务器 agent 对话 | 授权后自动 | 经 ssh 打包拉回 `~/.claude`、`~/.codex` 近几天的会话日志，按本机日志同样解析 | |
+| 最近打开的文件 | 授权后自动 | Windows“最近使用”里的文件名与时间 | 文件内容 |
+| 工作目录 | 授权后自动 | 指定目录下文档类文件的文件名与修改时间 | 文件内容 |
 | 显式标注 | `ht2w mark "刚才那版数字抄错了"` | 用户随手记一句 | |
 
 截图是“按需”的：窗口切换后、保存或发送类快捷键后、以及每分钟一次，且与上一张的感知哈希差异足够大才留。
