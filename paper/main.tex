@@ -282,7 +282,8 @@ and report remain mutually consistent: a verifier can only catch a probe by know
 
 \begin{figure}[t]
 \centering
-\begin{tikzpicture}[x=1cm,y=1cm]
+
+\resizebox{\textwidth}{!}{\begin{tikzpicture}[x=1cm,y=1cm]
 % row 1: pipeline
 \node[card=mainc, text width=2.45cm, align=center] (rec) at (1.4,6.3) {\textbf{access records}\\ agent logs, shell and browser history, chats\\ \emph{per-source consent}};
 \node[card=mainc, text width=2.45cm, align=center] (cmp) at (4.85,6.3) {\textbf{compile}, no model\\ timeline plus off-mainline signal candidates};
@@ -311,7 +312,7 @@ and report remain mutually consistent: a verifier can only catch a probe by know
 \node[font=\tiny, text=mainc, rotate=90] at (-0.5,4.5) {revised skill};
 \draw[->, hidc, dashed, thick] (pr.north) -- (15.75,5.55) -- (vf.east);
 \node[font=\tiny, text=hidc, align=center] at (15.75,2.2) {evaluation only,\\never fed back};
-\end{tikzpicture}
+\end{tikzpicture}}
 \caption{The pipeline. Records are collected under consent and compressed without a model; agent sessions distil
 a profile and, per task, a workflow and a verifier; the workflow runs as several sessions that all receive the
 verifier as the same prompt. Rubric failures drive revisions. Hidden style items are used only for scoring.}
@@ -363,7 +364,7 @@ that every style item conditions at least one record and that the reference pass
 Table~\ref{tab:samples} lists the six samples.
 
 \begin{table}[h]
-\centering\small
+\centering\footnotesize\setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}llllcc@{}}
 \toprule
 sample & person & task & record sources & hidden items & horizon \\
