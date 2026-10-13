@@ -33,6 +33,18 @@ def collect_allowed(since: float, cfg: dict | None = None) -> dict:
     for host in consent.ssh_hosts(cfg):
         step(f"ssh:{host}", lambda host=host: extra.shell_remote(host, since, cfg))
         step(f"ssh-agents:{host}", lambda host=host: extra.agents_remote(host, since, cfg))
+
+    def collect_wsl_agents(distro):
+        result = extra.agents_wsl(distro, since, cfg)
+        if result.get("parse"):
+            host = extra.wsl_host(distro)
+            report.setdefault("parse", {}).update(
+                {f"{kind}@{host}": stats for kind, stats in result["parse"].items()})
+        return result
+
+    for distro in sorted(sid.partition(":")[2] for sid in available if sid.startswith("wsl:")):
+        step(f"wsl:{distro}", lambda distro=distro: extra.shell_wsl(distro, since, cfg))
+        step(f"wsl-agents:{distro}", lambda distro=distro: collect_wsl_agents(distro))
     s = cfg["sources"]
     step("wx", lambda: misc.chat_export(s["wx_export"], s.get("wx_me") or "", "wx", cfg))
     step("recent", lambda: extra.recent_files(since))

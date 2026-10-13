@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import re
 import subprocess
+import sys
 import tarfile
 import time
 from pathlib import Path
@@ -47,8 +48,7 @@ def parse_history(text: str, mtime: float, host: str, since: float, tail: int, e
 
 
 def shell_local(since: float, cfg: dict) -> int:
-    home = Path.home()
-    files = [home / "AppData/Roaming/Microsoft/Windows/PowerShell/PSReadLine/ConsoleHost_history.txt", home / ".bash_history", home / ".zsh_history"]
+    files = config.local_shell_history(cfg)
     evs = []
     for f in files:
         if f.exists():
@@ -115,8 +115,90 @@ def agents_remote(host: str, since: float, cfg: dict, max_bytes: int = 300_000_0
     return out
 
 
+def wsl_host(distro: str) -> str:
+    return "wsl-" + re.sub(r"[^A-Za-z0-9._-]", "_", distro)
+
+
+def _wsl_homes(distro: str, cfg: dict) -> list[Path]:
+    """Resolve shares only during authorized collection; overrides retain the original distro name."""
+    if sys.platform != "win32":
+        return []
+    override = cfg["sources"].get("wsl", {}).get("roots", {}).get(distro)
+    roots = [config.expand(override)] if override else [
+        Path(r"\\wsl.localhost" + "\\" + distro),
+        Path(r"\\wsl$" + "\\" + distro),
+    ]
+    for root in roots:
+        try:
+            if root.is_dir():
+                break
+        except OSError:
+            continue
+    else:
+        raise FileNotFoundError(f"WSL root unavailable: {distro}")
+    homes = []
+    try:
+        for p in sorted((root / "home").iterdir()):
+            try:
+                if p.is_dir():
+                    homes.append(p)
+            except OSError:
+                continue
+    except OSError:
+        pass
+    try:
+        if (root / "root").is_dir():
+            homes.append(root / "root")
+    except OSError:
+        pass
+    return homes
+
+
+def shell_wsl(distro: str, since: float, cfg: dict) -> dict:
+    host = wsl_host(distro)
+    evs = []
+    for home in _wsl_homes(distro, cfg):
+        for path in config.platform_defaults("linux")["shell_history"]:
+            f = home / path[2:]  # candidates are relative to this WSL user's home
+            try:
+                if f.is_file():
+                    evs += parse_history(f.read_text(encoding="utf-8", errors="replace"), f.stat().st_mtime,
+                                         host, since, cfg["sources"]["shell_undated_tail"],
+                                         cfg["privacy"]["redact_extra"])
+            except OSError:
+                continue  # other users and /root can be unreadable
+    store.replace_source(f"shell@{host}", evs, since)
+    return {"ok": True, "commands": len(evs)}
+
+
+def agents_wsl(distro: str, since: float, cfg: dict) -> dict:
+    host = wsl_host(distro)
+    homes = _wsl_homes(distro, cfg)
+    s, extra = cfg["sources"], cfg["privacy"]["redact_extra"]
+    out = {"ok": True, "parse": {}}
+    for kind, fn, sub in (("claude", agents.claude_code, ".claude/projects"),
+                          ("codex", agents.codex, ".codex/sessions")):
+        evs, stats = [], {}
+        for home in homes:
+            root = home / sub
+            try:
+                if root.is_dir():
+                    evs += agents.dedupe(fn(root, since, s["msg_max_chars"], extra, stats=stats))
+            except OSError:
+                continue
+        for e in evs:
+            e["src"], e["host"] = f"{kind}@{host}", host
+        store.replace_source(f"{kind}@{host}", evs, since)
+        out[kind] = len(evs)
+        out["parse"][kind] = stats
+    return out
+
+
 def recent_files(since: float) -> int:
-    d = Path.home() / "AppData/Roaming/Microsoft/Windows/Recent"
+    recent = config.platform_defaults()["recent"]
+    if recent is None:
+        return 0
+    d = config.expand(recent)
     evs = []
     for f in d.glob("*.lnk") if d.exists() else []:
         t = f.stat().st_mtime

@@ -3,9 +3,47 @@ from __future__ import annotations
 
 import copy
 import os
+import sys
 from pathlib import Path
 
 import yaml
+
+
+def platform_defaults(platform: str | None = None) -> dict:
+    """Return unexpanded source paths without consulting the filesystem."""
+    platform = sys.platform if platform is None else platform
+    if platform == "win32":
+        browsers = {
+            "chrome": "~/AppData/Local/Google/Chrome/User Data/Default/History",
+            "edge": "~/AppData/Local/Microsoft/Edge/User Data/Default/History",
+        }
+        powershell = "~/AppData/Roaming/Microsoft/Windows/PowerShell/PSReadLine/ConsoleHost_history.txt"
+    elif platform == "darwin":
+        browsers = {
+            "chrome": "~/Library/Application Support/Google/Chrome/Default/History",
+            "edge": "~/Library/Application Support/Microsoft Edge/Default/History",
+            "chromium": "~/Library/Application Support/Chromium/Default/History",
+        }
+        powershell = "~/.local/share/powershell/PSReadLine/ConsoleHost_history.txt"
+    else:
+        browsers = {
+            "chrome": "~/.config/google-chrome/Default/History",
+            "edge": "~/.config/microsoft-edge/Default/History",
+            "chromium": "~/.config/chromium/Default/History",
+        }
+        powershell = "~/.local/share/powershell/PSReadLine/ConsoleHost_history.txt"
+    return {
+        "browsers": browsers,
+        "shell_history": [powershell, "~/.bash_history", "~/.zsh_history"],
+        "recent": "~/AppData/Roaming/Microsoft/Windows/Recent" if platform == "win32" else None,
+    }
+
+
+def local_shell_history(cfg: dict) -> list[Path]:
+    return [expand(p) for p in cfg["sources"].get("shell_history", platform_defaults()["shell_history"])]
+
+
+_PLATFORM_DEFAULTS = platform_defaults()
 
 DEFAULTS = {
     "agent": {
@@ -35,10 +73,9 @@ DEFAULTS = {
     "sources": {
         "claude_dir": "~/.claude/projects",
         "codex_dir": "~/.codex/sessions",
-        "browsers": {
-            "chrome": "~/AppData/Local/Google/Chrome/User Data/Default/History",
-            "edge": "~/AppData/Local/Microsoft/Edge/User Data/Default/History",
-        },
+        "browsers": _PLATFORM_DEFAULTS["browsers"],
+        "shell_history": _PLATFORM_DEFAULTS["shell_history"],
+        "wsl": {"distros": "auto", "roots": {}},
         "git_repos": [],
         "ssh_hosts": [],  # user@host entries; hosts in ~/.ssh/config are picked up as well
         "shell_remote_tail": 5000,  # lines of each history file fetched from a server
