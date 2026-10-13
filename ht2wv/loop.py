@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import tempfile
 import time
 from pathlib import Path
 
@@ -184,7 +185,7 @@ def _round(name: str, ids: list[dict], rdir: Path, cfg: dict, judge: bool) -> fl
 
 def optimize(name: str, rounds: int = 2, judge: bool = True, cfg: dict | None = None) -> dict:
     """Fix the verifier, search over workflows. A candidate SKILL.md is kept only if it does not
-    lose on held-out cases; the improving agent never sees those."""
+    lose on held-out cases; its improvement workspace contains only training runs."""
     cfg = cfg or config.load()
     d = skill_dir(name)
     cs = [c for c in cases(name) if (c["dir"] / "input").is_dir()]
@@ -200,21 +201,55 @@ def optimize(name: str, rounds: int = 2, judge: bool = True, cfg: dict | None = 
     for r in range(1, rounds + 1):
         tr = _round(name, train, run / f"r{r}-train", cfg, judge)
         backup = (d / "SKILL.md").read_text(encoding="utf-8")
-        rel = (run / f"r{r}-train").relative_to(config.home()).as_posix()
-        agent.run(f"improve-{name}", agent.render("improve", name=name, round_dir=rel), config.home(), cfg)
+        sandbox = Path(tempfile.mkdtemp(prefix="ht2wv-improve-"))
+        try:
+            if sandbox.resolve().is_relative_to(config.home().resolve()):
+                raise ValueError("improve sandbox must be outside the data root")
+            export(name, sandbox / "skill")
+            if (d / "CHANGELOG.md").exists():
+                shutil.copyfile(d / "CHANGELOG.md", sandbox / "skill" / "CHANGELOG.md")
+            for c in train:
+                source = run / f"r{r}-train" / c["id"]
+                dest = sandbox / "train" / c["id"]
+                dest.mkdir(parents=True)
+                for subdir in ("input", "output"):
+                    shutil.copytree(source / subdir, dest / subdir)
+                shutil.copyfile(source / "report.json", dest / "report.json")
+            agent.run(f"improve-{name}", agent.render("improve", name=name), sandbox, cfg)
+            audit = run / f"r{r}-improve"
+            audit.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(sandbox / "skill" / "SKILL.md", audit / "SKILL.md")
+            shutil.copyfile(sandbox / "skill" / "SKILL.md", d / "SKILL.md")
+            if (sandbox / "skill" / "CHANGELOG.md").exists():
+                shutil.copyfile(sandbox / "skill" / "CHANGELOG.md", d / "CHANGELOG.md")
+        finally:
+            shutil.rmtree(sandbox)
         entry = {"round": r, "train": tr}
         if _frozen_hash(d) != frozen:
             entry["status"] = "void: the verifier was modified"  # we cannot trust anything from this round
             log["rounds"].append(entry)
             (d / "SKILL.md").write_text(backup, encoding="utf-8")
             break
-        v = _round(name, val, run / f"r{r}-val", cfg, judge)
-        entry["val"] = v
-        if v >= best_val:
-            best_val, entry["status"] = v, "kept"
-        else:
+        lines = (d / "SKILL.md").read_text(encoding="utf-8").splitlines()
+        try:
+            if not lines or lines[0].strip() != "---":
+                raise ValueError("missing frontmatter")
+            end = lines.index("---", 1)
+            frontmatter = yaml.safe_load("\n".join(lines[1:end]))
+            valid_name = isinstance(frontmatter, dict) and frontmatter.get("name") == name
+        except (ValueError, yaml.YAMLError):
+            valid_name = False
+        if not valid_name:
             (d / "SKILL.md").write_text(backup, encoding="utf-8")
-            entry["status"] = "reverted"
+            entry["status"] = f"reverted: SKILL.md needs frontmatter with name {name}"
+        else:
+            v = _round(name, val, run / f"r{r}-val", cfg, judge)
+            entry["val"] = v
+            if v >= best_val:
+                best_val, entry["status"] = v, "kept"
+            else:
+                (d / "SKILL.md").write_text(backup, encoding="utf-8")
+                entry["status"] = "reverted"
         log["rounds"].append(entry)
         (run / "log.json").write_text(json.dumps(log, ensure_ascii=False, indent=1), encoding="utf-8")
         if agent.spent() >= cfg["agent"]["budget_usd"]:
