@@ -13,6 +13,7 @@ verifier.yaml
     - id, layer (objective | style | preference), claim
       how: check   -> check: checks/x.py   (python x.py --input DIR --output DIR; last stdout line = {"pass": bool, "detail": str})
       how: judge   -> rubric: what a reviewer should look for
+      cases: [<case id>, ...] (optional, judge only): existing reject cases this item is expected to fail
       weight, hard, confidence, source (observed | stated | corrected | hypothesized), evidence: ["<day>:<signal id>"]
 """
 from __future__ import annotations
@@ -80,6 +81,11 @@ def lint(skill_dir: Path, file: str = "verifier.yaml") -> list[str]:
                 errs.append(f"{iid}: judge item needs a rubric")
         else:
             errs.append(f"{iid}: how must be check or judge")
+        if "cases" in it:
+            if it.get("how") != "judge":
+                errs.append(f"{iid}: cases is only allowed on how: judge items")
+            if not isinstance(it["cases"], list) or not all(isinstance(cid, str) for cid in it["cases"]):
+                errs.append(f"{iid}: cases must be a list of strings")
         src = it.get("source")
         if src not in SOURCES:
             errs.append(f"{iid}: source must be one of {SOURCES}")

@@ -45,6 +45,7 @@
        claim: ...
        how: judge      # 能写成脚本就用 check，写不成才用 judge
        rubric: 评审时具体看什么；给出一个通过的例子和一个不通过的例子
+       # cases: [<case id>, ...]  # 可选，仅 judge：明确列出本条预期不通过的、已存在且 label 为 reject 的样例 id
        weight: 1
        hard: false
        confidence: 0.6
@@ -78,7 +79,10 @@
 ## 自检（必须通过才算完成）
 
 运行 `python -m ht2wv lint {{name}}`。它会检查结构，并在每个 case 上跑 verifier，
-要求 accept 的 case 不被判 reject、reject 的 case 至少有一条检查脚本不通过或有明确指向它的 judge 条目。
+要求 accept 的 case 不被判 reject 且没有失败的检查；reject 的 case 至少有一条检查脚本不通过，
+或有 judge 条目的 `cases: [<case id>, ...]` 明确列出它。judge 条目仅仅存在不算覆盖，`cases` 不得用于 check 条目。
+reject 的 case 最终 verdict 也必须为 reject：只有未被失败检查覆盖、仅由具名 judge 覆盖时，
+才将这些具名 judge 暂按不通过计算，并要求 verdict 为 reject；lint 会注明结论依赖待评审条目。
 不通过就修到通过为止。连续 3 次因同一原因失败就停下，把原因写进 `evidence.md` 末尾。
 
 ## 结束时

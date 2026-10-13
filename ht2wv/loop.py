@@ -40,17 +40,53 @@ def lint(name: str, proposed: bool = False) -> dict:
     errs = verifier.lint(d, file)
     rows = []
     if not any("unreadable" in e for e in errs):
-        has_judge = any(i.get("how") == "judge" for i in verifier.load(d, file)["items"])
-        for c in cases(name):
+        labelled = cases(name)
+        by_id = {c["id"]: c for c in labelled}
+        named_judges = {c["id"]: [] for c in labelled}
+        for it in verifier.load(d, file)["items"]:
+            if it.get("how") != "judge" or "cases" not in it:
+                continue
+            ids = it["cases"]
+            if not isinstance(ids, list) or not all(isinstance(cid, str) for cid in ids):
+                continue  # verifier.lint reports malformed cases fields
+            for cid in ids:
+                if cid not in by_id:
+                    errs.append(f"{it['id']}: cases names unknown case {cid}")
+                elif by_id[cid]["label"] != "reject":
+                    errs.append(f"{it['id']}: case {cid} in cases must be labelled reject")
+                else:
+                    named_judges[cid].append(it["id"])
+        for c in labelled:
             rep = verifier.run(d, c["dir"] / "output", c["dir"] / "input", file=file)
-            failed = [r["id"] for r in rep["items"] if r["pass"] is False]
+            failed = [r["id"] for r in rep["items"] if r["how"] == "check" and r["pass"] is False]
             broken = [r["id"] for r in rep["items"] if r["how"] == "check" and r["pass"] is None]
             errs += [f"case {c['id']}: check {b} crashed or printed no verdict" for b in broken]
             if c["label"] == "accept" and failed:
                 errs.append(f"case {c['id']}: the person kept this output but checks {failed} fail on it")
-            if c["label"] == "reject" and not failed and not has_judge:
-                errs.append(f"case {c['id']}: the person rejected this output but nothing in the verifier can fail it")
-            rows.append({"case": c["id"], "label": c["label"], "checks_verdict": rep["verdict"], "failed": failed, "pending": rep["pending"]})
+            named = named_judges[c["id"]]
+            coverage = "check:" + ",".join(failed) if failed else "none"
+            verdict = rep["verdict"]
+            depends_on = []
+            if c["label"] == "accept" and verdict == "reject":
+                errs.append(f"case {c['id']}: the person kept this output but the verifier verdict is reject")
+            if c["label"] == "reject":
+                if not failed and not named:
+                    errs.append(f"case {c['id']}: the person rejected this output but nothing in the verifier can fail it; "
+                                "a failing check or a judge item explicitly naming it in cases is required")
+                if not failed and named:
+                    coverage = "judge-named:" + ",".join(named)
+                    depends_on = named
+                    judgments = {iid: {"pass": False, "detail": f"expected failure for case {c['id']}; judge still pending"}
+                                 for iid in named}
+                    judged = verifier.run(d, c["dir"] / "output", c["dir"] / "input", judgments=judgments, file=file)
+                    verdict = judged["verdict"]
+                    if verdict != "reject":
+                        errs.append(f"case {c['id']}: rejection depends on pending judge items {named}, "
+                                    f"but with those items failed the verifier verdict is {verdict}, not reject")
+                elif verdict == "accept":
+                    errs.append(f"case {c['id']}: the person rejected this output but the verifier verdict is accept")
+            rows.append({"case": c["id"], "label": c["label"], "checks_verdict": rep["verdict"], "failed": failed,
+                         "pending": rep["pending"], "coverage": coverage, "verdict": verdict, "verdict_depends_on": depends_on})
     return {"skill": name, "file": file, "ok": not errs, "errors": errs, "cases": rows}
 
 
