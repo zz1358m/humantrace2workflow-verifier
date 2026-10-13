@@ -1,0 +1,15 @@
+{"op": "lookup", "order": "W108"}
+{"op": "refund", "order": "W108", "amount": 300.0, "result": "ok"}
+{"op": "restock", "order": "W108"}
+{"op": "notify", "order": "W108", "template": "refunded"}
+{"op": "lookup", "order": "W109"}
+{"op": "refund", "order": "W109", "amount": 405.0, "result": "ok"}
+{"op": "restock", "order": "W109"}
+{"op": "notify", "order": "W109", "template": "refunded"}
+{"op": "lookup", "order": "W111"}
+{"op": "escalate", "order": "W111", "reason": "超过500需主管审批"}
+{"op": "notify", "order": "W111", "template": "escalated"}
+{"op": "lookup", "order": "W112"}
+{"op": "refund", "order": "W112", "amount": 120.0, "result": "ok"}
+{"op": "restock", "order": "W112"}
+{"op": "notify", "order": "W112", "template": "refunded"}

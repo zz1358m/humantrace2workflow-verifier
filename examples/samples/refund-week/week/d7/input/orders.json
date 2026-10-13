@@ -1,0 +1,256 @@
+{
+ "day": "2026-06-28",
+ "daily_refund_cap": 1000.0,
+ "orders": {
+  "W101": {
+   "paid": true,
+   "amount": 199.0,
+   "shipping_fee": 12.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-CUP",
+   "reason": "不想要了",
+   "first_requested_at": "2026-06-22 09:02"
+  },
+  "W107": {
+   "paid": true,
+   "amount": 210.0,
+   "shipping_fee": 10.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-SHELF",
+   "reason": "质量问题：层板开裂",
+   "first_requested_at": "2026-06-22 09:50"
+  },
+  "W106": {
+   "paid": true,
+   "amount": 329.0,
+   "shipping_fee": 15.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-LAMP",
+   "reason": "质量问题：灯不亮",
+   "first_requested_at": "2026-06-22 09:15"
+  },
+  "W102": {
+   "paid": true,
+   "amount": 520.0,
+   "shipping_fee": 20.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-CHAIR",
+   "reason": "质量问题：椅腿断裂",
+   "first_requested_at": "2026-06-22 08:55"
+  },
+  "W103": {
+   "paid": true,
+   "amount": 259.0,
+   "shipping_fee": 10.0,
+   "shipped": false,
+   "return_received": false,
+   "sku": "SKU-BAG",
+   "reason": "一直没发货，不要了",
+   "first_requested_at": "2026-06-22 08:50"
+  },
+  "W104": {
+   "paid": true,
+   "amount": 99.0,
+   "shipping_fee": 8.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-MAT",
+   "reason": "不想要了",
+   "first_requested_at": "2026-06-22 09:05"
+  },
+  "W105": {
+   "paid": true,
+   "amount": 150.0,
+   "shipping_fee": 8.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-FAN",
+   "reason": "质量问题：风扇异响",
+   "first_requested_at": "2026-06-22 09:10"
+  },
+  "W109": {
+   "paid": true,
+   "amount": 420.0,
+   "shipping_fee": 15.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-DESK",
+   "reason": "不想要了",
+   "first_requested_at": "2026-06-23 10:00"
+  },
+  "W108": {
+   "paid": true,
+   "amount": 300.0,
+   "shipping_fee": 10.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-KEYB",
+   "reason": "质量问题：键帽脱落",
+   "first_requested_at": "2026-06-23 09:20"
+  },
+  "W110": {
+   "paid": true,
+   "amount": 180.0,
+   "shipping_fee": 8.0,
+   "shipped": false,
+   "return_received": false,
+   "sku": "SKU-MUG",
+   "reason": "一直没发货，不要了",
+   "first_requested_at": "2026-06-23 09:40"
+  },
+  "W112": {
+   "paid": true,
+   "amount": 120.0,
+   "shipping_fee": 8.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-CABLE",
+   "reason": "质量问题：充电线不通电",
+   "first_requested_at": "2026-06-24 10:10"
+  },
+  "W111": {
+   "paid": true,
+   "amount": 640.0,
+   "shipping_fee": 20.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-MONITOR",
+   "reason": "质量问题：屏幕漏光",
+   "first_requested_at": "2026-06-24 09:00"
+  },
+  "W116": {
+   "paid": true,
+   "amount": 95.0,
+   "shipping_fee": 8.0,
+   "shipped": false,
+   "return_received": false,
+   "sku": "SKU-PEN",
+   "reason": "一直没发货，不要了",
+   "first_requested_at": "2026-06-25 09:25"
+  },
+  "W114": {
+   "paid": true,
+   "amount": 450.0,
+   "shipping_fee": 15.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-CABINET",
+   "reason": "质量问题：柜门变形",
+   "first_requested_at": "2026-06-25 09:10"
+  },
+  "W117": {
+   "paid": true,
+   "amount": 60.0,
+   "shipping_fee": 8.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-TOWEL",
+   "reason": "不想要了",
+   "first_requested_at": "2026-06-25 09:30"
+  },
+  "W113": {
+   "paid": true,
+   "amount": 88.0,
+   "shipping_fee": 8.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-PILLOW",
+   "reason": "不想要了",
+   "first_requested_at": "2026-06-25 09:00"
+  },
+  "W115": {
+   "paid": true,
+   "amount": 480.0,
+   "shipping_fee": 15.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-SPEAKER",
+   "reason": "质量问题：音箱破音",
+   "first_requested_at": "2026-06-25 09:20"
+  },
+  "W121": {
+   "paid": true,
+   "amount": 390.0,
+   "shipping_fee": 15.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-LUGGAGE",
+   "reason": "质量问题：轮子断裂",
+   "first_requested_at": "2026-06-26 09:45"
+  },
+  "W119": {
+   "paid": true,
+   "amount": 260.0,
+   "shipping_fee": 10.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-KETTLE",
+   "reason": "质量问题：水壶漏水",
+   "first_requested_at": "2026-06-26 08:40"
+  },
+  "W118": {
+   "paid": true,
+   "amount": 700.0,
+   "shipping_fee": 20.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-MATTRESS",
+   "reason": "质量问题：床垫塌陷",
+   "first_requested_at": "2026-06-26 08:30"
+  },
+  "W120": {
+   "paid": true,
+   "amount": 310.0,
+   "shipping_fee": 12.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-COAT",
+   "reason": "不想要了",
+   "first_requested_at": "2026-06-26 09:15"
+  },
+  "W122": {
+   "paid": true,
+   "amount": 130.0,
+   "shipping_fee": 8.0,
+   "shipped": false,
+   "return_received": false,
+   "sku": "SKU-BOOK",
+   "reason": "一直没发货，不要了",
+   "first_requested_at": "2026-06-27 10:00"
+  },
+  "W124": {
+   "paid": true,
+   "amount": 150.0,
+   "shipping_fee": 10.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-SHOES",
+   "reason": "不想要了",
+   "first_requested_at": "2026-06-28 09:20"
+  },
+  "W125": {
+   "paid": true,
+   "amount": 560.0,
+   "shipping_fee": 20.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-OVEN",
+   "reason": "质量问题：烤箱不加热",
+   "first_requested_at": "2026-06-28 09:40"
+  },
+  "W123": {
+   "paid": true,
+   "amount": 200.0,
+   "shipping_fee": 10.0,
+   "shipped": true,
+   "return_received": true,
+   "sku": "SKU-EARBUDS",
+   "reason": "质量问题：耳机单边无声",
+   "first_requested_at": "2026-06-28 09:00"
+  }
+ }
+}

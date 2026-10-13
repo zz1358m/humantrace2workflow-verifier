@@ -1,0 +1,14 @@
+{"op": "lookup", "order": "W107"}
+{"op": "refund", "order": "W107", "amount": 210.0, "result": "ok"}
+{"op": "restock", "order": "W107"}
+{"op": "notify", "order": "W107", "template": "refunded"}
+{"op": "lookup", "order": "W108"}
+{"op": "refund", "order": "W108", "amount": 300.0, "result": "ok"}
+{"op": "restock", "order": "W108"}
+{"op": "notify", "order": "W108", "template": "refunded"}
+{"op": "lookup", "order": "W110"}
+{"op": "refund", "order": "W110", "amount": 180.0, "result": "ok"}
+{"op": "notify", "order": "W110", "template": "refunded"}
+{"op": "lookup", "order": "W109"}
+{"op": "escalate", "order": "W109", "reason": "当日额度不足"}
+{"op": "notify", "order": "W109", "template": "escalated"}

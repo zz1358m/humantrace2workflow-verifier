@@ -22,6 +22,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 
@@ -62,7 +63,8 @@ def validate(sample: dict) -> list[str]:
     """Structural checks, plus the one that matters: every style item must leave a trace in the records,
     otherwise no pipeline could recover it and the sample is unfair."""
     errs = []
-    for key in ("id", "purpose", "rubric", "style", "records", "task"):
+    week = bool(sample.get("week"))
+    for key in ("id", "purpose", "rubric", "style", "records", "week" if week else "task"):
         if not sample.get(key):
             errs.append(f"missing {key}")
     if errs:
@@ -88,9 +90,9 @@ def validate(sample: dict) -> list[str]:
     for sid in tagged:
         if sid not in ids:
             errs.append(f"records reference unknown style id {sid}")
-    ref = sample["task"].get("reference_output") or {}
     for st in sample["style"]:
         p = st.get("probe")
+        ref = day_reference(sample, st.get("day", 1)) if week else sample["task"].get("reference_output") or {}
         if p and "dir" in p and not (sample["_dir"] / p["dir"]).is_dir():
             errs.append(f"style {st['id']}: probe dir {p['dir']} not found")
         elif p and "dir" not in p and p.get("file") not in ref:
@@ -253,9 +255,30 @@ def _apply_probe(ref: dict, p: dict, sample_dir: Path | None = None) -> dict:
     return out
 
 
-def score_checklist(sample: dict, out_dir: Path, in_dir: Path) -> dict:
+def day_context(sample: dict, d: int, prev_state: str | None = None, history: dict | None = None) -> dict:
+    """Input files for day d of a week. Without prev_state, the days before are taken from the reference
+    trajectory (what the back office would look like had she done them herself)."""
+    root = sample["_dir"] / sample["week"]["dir"]
+    files = _read_tree(root / f"d{d}" / "input")
+    if prev_state is None and d > 1:
+        prev_state = (root / f"d{d - 1}" / "reference" / "state.json").read_text(encoding="utf-8")
+        history = {f"d{k}.md": (root / f"d{k}" / "reference" / "REPORT.md").read_text(encoding="utf-8") for k in range(1, d)}
+    if prev_state:
+        files["prev_state.json"] = prev_state
+    for k, v in (history or {}).items():
+        files[f"history/{k}"] = v
+    return files
+
+
+def day_reference(sample: dict, d: int) -> dict:
+    return _read_tree(sample["_dir"] / sample["week"]["dir"] / f"d{d}" / "reference")
+
+
+def score_checklist(sample: dict, out_dir: Path, in_dir: Path, day: int | None = None) -> dict:
     rows = []
     for c in sample["rubric"]:
+        if c.get("days") and day not in c["days"]:
+            continue
         err = ""
         try:
             r = subprocess.run([sys.executable, "-B", str(sample["_dir"] / "rubric.py"), "--item", c["id"], "--input", str(in_dir), "--output", str(out_dir)],
@@ -270,36 +293,60 @@ def score_checklist(sample: dict, out_dir: Path, in_dir: Path) -> dict:
 
 
 def score_style(sample: dict, name: str, rdir: Path, cfg: dict, judge: bool) -> dict:
-    task = sample["task"]
-    ref = task["reference_output"]
+    """For each hidden style item, break the reference in exactly that way and see whether the built verifier
+    fails it on something it passes on the unbroken reference. In a week, each item is probed on its own day."""
+    week = bool(sample.get("week"))
 
-    def run(tag: str, files: dict) -> dict:
+    def ctx(day):
+        if week:
+            return day_context(sample, day), day_reference(sample, day)
+        return sample["task"]["input"], sample["task"]["reference_output"]
+
+    def run(tag: str, inp: dict, files: dict) -> dict:
         d = rdir / tag
-        _write_tree(d / "input", task["input"])
+        _write_tree(d / "input", inp)
         _write_tree(d / "output", files)
         return loop.score(name, d, cfg, judge)
 
-    base = run("probe-reference", ref)
-    base_failed = {r["id"] for r in base["items"] if r["pass"] is False}
-    rows = []
-    for st in sample["style"]:
-        if not st.get("probe"):
-            rows.append({"id": st["id"], "statement": st["statement"], "covered": None, "by": [], "note": "no output probe (process-level standard); not auto-scored"})
-            continue
-        rep = run(f"probe-{st['id']}", _apply_probe(ref, st["probe"], sample["_dir"]))
-        by = sorted({r["id"] for r in rep["items"] if r["pass"] is False} - base_failed)
-        rows.append({"id": st["id"], "statement": st["statement"], "covered": bool(by), "by": by, "verdict": rep["verdict"]})
+    days = sorted({st.get("day", 1) for st in sample["style"] if st.get("probe")}) if week else [None]
+    with ThreadPoolExecutor(max_workers=4) as ex:  # one verifier run (and maybe one judge session) per probe
+        base = dict(zip(days, ex.map(lambda dd: run("probe-reference" + (f"-d{dd}" if dd else ""), *ctx(dd)), days)))
+        base_failed = {dd: {r["id"] for r in rep["items"] if r["pass"] is False} for dd, rep in base.items()}
+
+        def one(st):
+            if not st.get("probe"):
+                return {"id": st["id"], "statement": st["statement"], "covered": None, "by": [],
+                        "note": "no output probe (process-level standard); not auto-scored"}
+            dd = st.get("day", 1) if week else None
+            inp, ref = ctx(dd)
+            rep = run(f"probe-{st['id']}", inp, _apply_probe(ref, st["probe"], sample["_dir"]))
+            by = sorted({r["id"] for r in rep["items"] if r["pass"] is False} - base_failed[dd])
+            row = {"id": st["id"], "statement": st["statement"], "covered": bool(by), "by": by, "verdict": rep["verdict"]}
+            return {**row, "day": dd} if week else row
+
+        rows = list(ex.map(one, sample["style"]))
     scored = [r for r in rows if r["covered"] is not None]
-    return {"covered": sum(r["covered"] for r in scored), "total": len(scored), "reference_verdict": base["verdict"],
-            "reference_failed": sorted(base_failed), "pending_judge": bool(base["pending"]), "items": rows}
+    out = {"covered": sum(r["covered"] for r in scored), "total": len(scored),
+           "reference_verdict": "accept" if all(rep["verdict"] == "accept" for rep in base.values()) else "reject",
+           "reference_failed": sorted(set().union(*base_failed.values())), "pending_judge": any(rep["pending"] for rep in base.values()), "items": rows}
+    if week:
+        out["reference_by_day"] = {f"d{dd}": rep["verdict"] for dd, rep in base.items()}
+    return out
 
 
 def gold_selfcheck(sample: dict) -> dict:
     """The reference output must pass the whole checklist, or the sample contradicts itself."""
     tmp = config.home() / "runs" / "bench-gold"
-    _write_tree(tmp / "input", sample["task"]["input"])
-    _write_tree(tmp / "output", sample["task"]["reference_output"])
-    return score_checklist(sample, tmp / "output", tmp / "input")
+    if not sample.get("week"):
+        _write_tree(tmp / "input", sample["task"]["input"])
+        _write_tree(tmp / "output", sample["task"]["reference_output"])
+        return score_checklist(sample, tmp / "output", tmp / "input")
+    items = []
+    for d in range(1, sample["week"]["days"] + 1):
+        _write_tree(tmp / f"d{d}" / "input", day_context(sample, d))
+        _write_tree(tmp / f"d{d}" / "output", day_reference(sample, d))
+        items += [{**i, "id": f"d{d}:{i['id']}"} for i in score_checklist(sample, tmp / f"d{d}" / "output", tmp / f"d{d}" / "input", d)["items"]]
+    return {"passed": sum(i["pass"] for i in items), "total": len(items), "items": items}
 
 
 def run(sample_dir: Path, rounds: int = 2, judge: bool = True, cfg_over: dict | None = None, home: Path | None = None) -> dict:
@@ -356,10 +403,87 @@ def run(sample_dir: Path, rounds: int = 2, judge: bool = True, cfg_over: dict | 
     return report
 
 
+def run_week(sample_dir: Path, judge: bool = True, cfg_over: dict | None = None, home: Path | None = None, iterate: bool = True) -> dict:
+    """Long horizon: one skill, seven days. Each day starts from the state the run itself left behind the day
+    before, so what was done wrong on Monday is still there on Tuesday. The score is how many days are filled,
+    i.e. pass every rubric item that applies that day."""
+    sample = load(sample_dir)
+    errs = validate(sample)
+    if errs:
+        raise SystemExit("invalid sample:\n  " + "\n  ".join(errs))
+    home = home or config.home() / "bench" / sample["id"]
+    report: dict = {"sample": sample["id"], "prepare": prepare(sample, home), "days": []}
+    cfg = config.load()
+    for k, v in (cfg_over or {}).items():
+        if v is not None:
+            cfg["agent"][k] = v
+    gold = gold_selfcheck(sample)
+    if gold["passed"] != gold["total"]:
+        raise SystemExit("reference week fails the sample's own rubric: " + json.dumps([i for i in gold["items"] if not i["pass"]], ensure_ascii=False))
+
+    def save():
+        report["filled"] = sum(1 for d in report["days"] if d["filled"])
+        (home / "bench-report.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
+        (home / "bench-report.md").write_text(render_report(report), encoding="utf-8")
+
+    d = distill.distill(report["prepare"]["days"], 1, None, 1, False, cfg)
+    report["distill"] = d
+    name = (d.get("tasks") or [None])[0]
+    report["skill"] = name
+    save()
+    if not name or not (home / "skills" / name / "verifier.yaml").exists():
+        report["stopped"] = "no skill was built (see sessions/ for the task briefs and agent output)"
+        save()
+        return report
+    n, prev_state, history = sample["week"]["days"], None, {}
+    for day in range(1, n + 1):
+        rdir = home / "runs" / f"week-d{day}"
+        files = day_context(sample, day, prev_state or "", history) if day > 1 else day_context(sample, 1)
+        _write_tree(rdir / "day-input", files)
+        ex = loop.execute(name, rdir / "day-input", rdir / "exec", cfg)
+        out = rdir / "exec" / "output"
+        chk = score_checklist(sample, out, rdir / "exec" / "input", day)
+        report["days"].append({"day": day, "filled": chk["passed"] == chk["total"], "executor_ok": bool(ex and ex.ok), "checklist": chk,
+                               "blocked": (out / "BLOCKED.md").exists()})
+        if (out / "state.json").exists():  # whatever was done today is what tomorrow starts from
+            prev_state = (out / "state.json").read_text(encoding="utf-8")
+        if (out / "REPORT.md").exists():
+            history[f"d{day}.md"] = (out / "REPORT.md").read_text(encoding="utf-8")
+        save()
+        if iterate and day < n and not report["days"][-1]["filled"]:  # she says what was wrong; the skill gets one revision before tomorrow
+            fb = home / "feedback" / f"day-{day}"
+            fb.mkdir(parents=True, exist_ok=True)
+            (fb / "checklist.json").write_text(json.dumps(chk, ensure_ascii=False, indent=1), encoding="utf-8")
+            if out.exists():
+                shutil.copytree(out, fb / "output", dirs_exist_ok=True)
+            agent.run(f"iterate-{name}", agent.render("iterate", name=name, fb=f"feedback/day-{day}"), home, cfg)
+            report["days"][-1]["iterated"] = True
+    report["lint_ok"] = loop.lint(name)["ok"]
+    report["style"] = score_style(sample, name, home / "runs" / "week-style", cfg, judge)
+    report["spent_usd"] = round(agent.spent(), 4)
+    save()
+    return report
+
+
 def render_report(rep: dict) -> str:
     out = [f"# Bench report: {rep['sample']}", "", f"skill built: `{rep.get('skill')}`", ""]
     if rep.get("stopped"):
         out += [f"**stopped**: {rep['stopped']}", ""]
+    if rep.get("days"):
+        ids = sorted({i["id"] for d in rep["days"] for i in d["checklist"]["items"]}, key=lambda x: (len(x), x))
+        out += [f"**filled {rep.get('filled', 0)} / {len(rep['days'])} days**", "", "| day | " + " | ".join(ids) + " | filled |", "|---|" + "---|" * (len(ids) + 1)]
+        for d in rep["days"]:
+            got = {i["id"]: i["pass"] for i in d["checklist"]["items"]}
+            out.append(f"| {d['day']} | " + " | ".join("✓" if got.get(i) else "·" if i not in got else "✗" for i in ids) + f" | {'yes' if d['filled'] else 'no'} |")
+        out += ["", "## Rubric items that failed", ""]
+        out += [f"- day {d['day']} `{i['id']}` {i['claim']} — {i['detail']}" for d in rep["days"] for i in d["checklist"]["items"] if not i["pass"]] or ["- none"]
+        if rep.get("style"):
+            st = rep["style"]
+            out += ["", f"## Hidden style items: {st['covered']} / {st['total']} caught" + (" (judge items pending)" if st["pending_judge"] else ""), "",
+                    f"reference days accepted by the built verifier: {st.get('reference_by_day')}", ""]
+            for i in st["items"]:
+                mark = {True: "x", False: " ", None: "-"}[i["covered"]]
+                out.append(f"- [{mark}] `{i['id']}` (day {i.get('day')}) {i['statement']}" + (f" — caught by {', '.join(i['by'])}" if i["by"] else f" — {i.get('note', 'not caught')}"))
     if rep.get("rounds"):
         out += ["| round | rubric | style covered | reference output | lint |", "|---|---|---|---|---|"]
         for r in rep["rounds"]:

@@ -137,6 +137,7 @@ def main(argv=None) -> int:
     q.add_argument("sample")
     q.add_argument("--rounds", type=int, default=1)
     q.add_argument("--no-judge", action="store_true")
+    q.add_argument("--no-iterate", action="store_true", help="week samples: do not revise the skill after a failed day")
     for name in ("backend", "model", "effort"):
         q.add_argument(f"--{name}")
     q.add_argument("--context-window", type=int)
@@ -301,7 +302,10 @@ def main(argv=None) -> int:
             _print(bench.prepare(sm, config.home() / "bench" / sm["id"]))
         elif a.action == "run":
             over = {k: getattr(a, k) for k in ("backend", "model", "effort", "context_window", "fast")}
-            rep = bench.run(Path(a.sample), a.rounds, not a.no_judge, over)
+            if bench.load(Path(a.sample)).get("week"):  # long horizon: seven days, state carried over
+                rep = bench.run_week(Path(a.sample), not a.no_judge, over, iterate=not a.no_iterate)
+            else:
+                rep = bench.run(Path(a.sample), a.rounds, not a.no_judge, over)
             print(bench.render_report(rep))
         elif a.action == "gen":
             for k in ("backend", "model", "effort"):
