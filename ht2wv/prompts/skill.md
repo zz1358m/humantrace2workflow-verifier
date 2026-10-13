@@ -51,6 +51,23 @@
        confidence: 0.9
        source: observed
        evidence: ["<day>:<signal id>"]
+     - id: PR1         # process：做事的顺序与前置条件。任务有动作日志（如 output/journal.jsonl）时，
+       layer: process  # 写成脚本去查日志里的先后关系：“X 之前必须有 Y”“Z 只能在最后”“同一对象不能处理两次”
+       claim: ...
+       how: check
+       check: checks/pr1_xxx.py
+       weight: 3
+       hard: true
+       source: corrected
+       evidence: [...]
+     - id: RP1         # report：汇报风格与可读性。交付汇报（output/REPORT.md）要写成这个人习惯读的样子
+       layer: report   # 结构（结论在哪）、长度、表格还是段落、有没有过程叙述、数字的单位与精度、例外怎么标
+       claim: ...
+       how: check      # 结构性的（第一行是不是结论、行数、有没有表格、金额格式）写成脚本；
+       check: checks/rp1_xxx.py   # 只有“读起来是否清楚”这种才用 judge，rubric 里写明他会嫌弃的具体写法
+       weight: 2
+       source: corrected
+       evidence: [...]
      - id: P1          # preference：这个人在这个任务上特有的标准
        layer: preference
        claim: ...
@@ -76,6 +93,17 @@
    后者是他留下的版本（accept）。被打回的 agent 产出同理。还原不出文件的就不建 case，不要伪造。
 5. `evidence.md`：每条 verifier 条目的证据链——哪个行为或哪句话，为什么能推出这条标准，
    还有哪些别的解释、为什么排除。也写明你**没有**证据支持、因此没写进去的候选标准。
+
+## 两类容易漏掉的标准
+
+- **顺序**。如果任务是在一个有状态的环境里执行动作（输入里有 `env.py` 之类的工具，动作会留下日志），
+  那么“先做什么后做什么”本身就是验收对象：结果碰巧对了但顺序错了，这个人不会接受。
+  把他坚持的先后关系和前置条件写进 SKILL.md 的硬性约束和 stage 的拆分里，并在 verifier 里用 `process` 层的检查脚本去查日志。
+  stage 的顺序就是执行顺序，拆的时候要保证前置检查所在的 stage 排在动作所在的 stage 之前。
+- **汇报**。workflow 的最后一个 stage 必须写一份交付汇报 `output/REPORT.md`（除非 `request.md` 明确说不要），
+  按 `profile/profile.md` 里“汇报风格”写：这个人要先看到什么、看多长、什么写法他会打回。
+  verifier 里至少要有两条 `report` 层的条目（继承来的算），覆盖结构和可读性。
+  汇报写得和他的习惯不一样，等于让他自己再查一遍，这在他那里就是没做完。
 
 ## 硬性约束
 

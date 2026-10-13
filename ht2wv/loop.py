@@ -116,8 +116,10 @@ def verifier_prompt(v: dict) -> str:
     out = ["# 验收标准（本 workflow 的所有会话共用）", "",
            "这是这个人判断“做对了”的标准。每个会话在动手前读一遍，交接前对照一遍；最后一个会话必须跑",
            "`python skill/verify.py --input input --output output`，FAIL 的修掉重跑，TODO 的逐条自评。", ""]
-    names = {"objective": "客观正确性（不过就直接打回）", "style": "这个人跨任务的验收风格", "preference": "这个人在本任务上的偏好"}
-    for layer in ("objective", "style", "preference"):
+    names = {"objective": "客观正确性（不过就直接打回）", "process": "做事的顺序与前置条件（顺序错了，结果对也不算对）",
+             "style": "这个人跨任务的验收风格", "preference": "这个人在本任务上的偏好",
+             "report": "汇报风格与可读性（交付汇报要写成这个人习惯读的样子）"}
+    for layer in ("objective", "process", "style", "preference", "report"):
         items = [i for i in v["items"] if i.get("layer") == layer]
         if not items:
             continue
@@ -174,7 +176,7 @@ def score(name: str, run_dir: Path, cfg: dict, judge: bool = True, file: str = "
     d = skill_dir(name)
     v = verifier.load(d, file)
     judgments = None
-    items = [{"id": i["id"], "claim": i["claim"], "rubric": i.get("rubric", "")} for i in v["items"] if i.get("how") == "judge"]
+    items = [{"id": i["id"], "layer": i.get("layer"), "claim": i["claim"], "rubric": i.get("rubric", "")} for i in v["items"] if i.get("how") == "judge"]
     if judge and items:
         (run_dir / "items.json").write_text(json.dumps(items, ensure_ascii=False, indent=1), encoding="utf-8")
         (run_dir / "policy.json").write_text(json.dumps(v["policy"], ensure_ascii=False, indent=1), encoding="utf-8")

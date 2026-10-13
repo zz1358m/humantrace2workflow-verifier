@@ -38,7 +38,16 @@ SOURCES = ("claude", "codex", "shell", "browser", "chat")
 def load(sample_dir: Path) -> dict:
     s = yaml.safe_load((Path(sample_dir) / "sample.yaml").read_text(encoding="utf-8"))
     s["_dir"] = Path(sample_dir).resolve()
+    task = s.get("task") or {}
+    for key, src in (("input", "input_dir"), ("reference_output", "reference_dir")):  # larger tasks keep their files on disk
+        if task.get(src):
+            task[key] = _read_tree(s["_dir"] / task[src])
     return s
+
+
+def _read_tree(root: Path) -> dict:
+    return {p.relative_to(root).as_posix(): p.read_text(encoding="utf-8") for p in sorted(root.rglob("*"))
+            if p.is_file() and "__pycache__" not in p.parts}
 
 
 def _t(at: str) -> float:
@@ -82,10 +91,12 @@ def validate(sample: dict) -> list[str]:
     ref = sample["task"].get("reference_output") or {}
     for st in sample["style"]:
         p = st.get("probe")
-        if p and p.get("file") not in ref:
+        if p and "dir" in p and not (sample["_dir"] / p["dir"]).is_dir():
+            errs.append(f"style {st['id']}: probe dir {p['dir']} not found")
+        elif p and "dir" not in p and p.get("file") not in ref:
             errs.append(f"style {st['id']}: probe file {p.get('file')} is not in task.reference_output")
         elif p:
-            if _apply_probe(ref, p) == ref:
+            if _apply_probe(ref, p, sample["_dir"]) == ref:
                 errs.append(f"style {st['id']}: probe does not change the reference output")
     if not (sample["_dir"] / "rubric.py").exists():
         errs.append("rubric.py not found next to sample.yaml")
@@ -217,10 +228,13 @@ def _write_tree(root: Path, files: dict):
         shutil.rmtree(root)
     root.mkdir(parents=True)
     for name, content in files.items():
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
         (root / name).write_text(content, encoding="utf-8")
 
 
-def _apply_probe(ref: dict, p: dict) -> dict:
+def _apply_probe(ref: dict, p: dict, sample_dir: Path | None = None) -> dict:
+    if "dir" in p:  # a whole alternative run: the same day done again with one rule broken
+        return _read_tree(Path(sample_dir) / p["dir"])
     out = dict(ref)
     text = out[p["file"]]
     if "set" in p:
@@ -272,7 +286,7 @@ def score_style(sample: dict, name: str, rdir: Path, cfg: dict, judge: bool) -> 
         if not st.get("probe"):
             rows.append({"id": st["id"], "statement": st["statement"], "covered": None, "by": [], "note": "no output probe (process-level standard); not auto-scored"})
             continue
-        rep = run(f"probe-{st['id']}", _apply_probe(ref, st["probe"]))
+        rep = run(f"probe-{st['id']}", _apply_probe(ref, st["probe"], sample["_dir"]))
         by = sorted({r["id"] for r in rep["items"] if r["pass"] is False} - base_failed)
         rows.append({"id": st["id"], "statement": st["statement"], "covered": bool(by), "by": by, "verdict": rep["verdict"]})
     scored = [r for r in rows if r["covered"] is not None]

@@ -1,0 +1,23 @@
+{"op": "lookup", "order": "A1001"}
+{"op": "refund", "order": "A1001", "amount": 187.0, "result": "ok"}
+{"op": "restock", "order": "A1001"}
+{"op": "notify", "order": "A1001", "template": "refunded"}
+{"op": "lookup", "order": "A1007"}
+{"op": "refund", "order": "A1007", "amount": 210.0, "result": "ok"}
+{"op": "restock", "order": "A1007"}
+{"op": "notify", "order": "A1007", "template": "refunded"}
+{"op": "lookup", "order": "A1002"}
+{"op": "refund", "order": "A1002", "amount": 329.0, "result": "ok"}
+{"op": "restock", "order": "A1002"}
+{"op": "notify", "order": "A1002", "template": "refunded"}
+{"op": "lookup", "order": "A1003"}
+{"op": "escalate", "order": "A1003", "reason": "超过500需主管审批"}
+{"op": "notify", "order": "A1003", "template": "escalated"}
+{"op": "lookup", "order": "A1004"}
+{"op": "refund", "order": "A1004", "amount": 259.0, "result": "ok"}
+{"op": "notify", "order": "A1004", "template": "refunded"}
+{"op": "lookup", "order": "A1005"}
+{"op": "notify", "order": "A1005", "template": "need_return"}
+{"op": "lookup", "order": "A1006"}
+{"op": "escalate", "order": "A1006", "reason": "当日额度不足"}
+{"op": "notify", "order": "A1006", "template": "escalated"}
