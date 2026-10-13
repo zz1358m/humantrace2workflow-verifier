@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -99,9 +100,11 @@ def lint(skill_dir: Path, file: str = "verifier.yaml") -> list[str]:
 
 
 def _run_check(skill_dir: Path, script: str, inp: Path, out: Path) -> tuple[bool | None, str]:
+    env = os.environ.copy()
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
     try:
-        r = subprocess.run([sys.executable, str(skill_dir / script), "--input", str(inp), "--output", str(out)],
-                           capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
+        r = subprocess.run([sys.executable, "-B", str(skill_dir / script), "--input", str(inp), "--output", str(out)],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120, env=env)
     except subprocess.TimeoutExpired:
         return False, "check timed out"
     lines = [ln for ln in r.stdout.strip().splitlines() if ln.strip()]

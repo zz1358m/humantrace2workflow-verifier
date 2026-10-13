@@ -154,9 +154,21 @@ def _tree_hash(d: Path, names: tuple[str, ...]) -> str:
     for n in names:
         p = d / n
         for f in ([p] if p.is_file() else sorted(p.rglob("*")) if p.exists() else []):
-            if f.is_file():
-                h.update(str(f.relative_to(d)).encode())
+            if f.is_file() and "__pycache__" not in f.relative_to(d).parts and f.suffix != ".pyc":
+                h.update(f.relative_to(d).as_posix().encode())
                 h.update(f.read_bytes())
+    return h.hexdigest()
+
+
+def _frozen_hash(d: Path) -> str:
+    """Freeze verifier inputs, including the person-level style outside the skill."""
+    h = hashlib.sha256(_tree_hash(d, ("verifier.yaml", "checks", "cases")).encode())
+    v = yaml.safe_load((d / "verifier.yaml").read_text(encoding="utf-8")) or {}
+    if v.get("inherits"):
+        style = (d / v["inherits"]).resolve()
+        if style.exists():
+            h.update(b"\0inherited-style\0")
+            h.update(style.read_bytes())
     return h.hexdigest()
 
 
@@ -181,7 +193,7 @@ def optimize(name: str, rounds: int = 2, judge: bool = True, cfg: dict | None = 
         raise SystemExit("no cases with input/ to replay")
     train, val = (inputs[0::2], inputs[1::2]) if len(inputs) > 1 else (inputs, inputs)
     run = _new_run("optimize", name)
-    frozen = _tree_hash(d, ("verifier.yaml", "checks", "cases"))
+    frozen = _frozen_hash(d)
     log = {"skill": name, "train": [c["id"] for c in train], "val": [c["id"] for c in val], "rounds": []}
     best_val = _round(name, val, run / "r0-val", cfg, judge)
     log["baseline_val"] = best_val
@@ -191,7 +203,7 @@ def optimize(name: str, rounds: int = 2, judge: bool = True, cfg: dict | None = 
         rel = (run / f"r{r}-train").relative_to(config.home()).as_posix()
         agent.run(f"improve-{name}", agent.render("improve", name=name, round_dir=rel), config.home(), cfg)
         entry = {"round": r, "train": tr}
-        if _tree_hash(d, ("verifier.yaml", "checks", "cases")) != frozen:
+        if _frozen_hash(d) != frozen:
             entry["status"] = "void: the verifier was modified"  # we cannot trust anything from this round
             log["rounds"].append(entry)
             (d / "SKILL.md").write_text(backup, encoding="utf-8")
