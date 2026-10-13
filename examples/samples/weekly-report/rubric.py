@@ -19,7 +19,7 @@ def load(inp: Path, out: Path):
 
 
 def line_of(text, label):
-    return next((ln for ln in text.splitlines() if label in ln and ln.lstrip().startswith(("-", "*"))), "")
+    return next((ln for ln in text.splitlines() if label in ln and not ln.lstrip().startswith("#")), "")
 
 
 def pct(cur, prev):
@@ -49,7 +49,7 @@ def r4(inp, out):
     bad = []
     for m in cur:
         ln = line_of(text, LABEL[m])
-        flagged = bool(re.match(r"\s*[-*]\s*⚠", ln))
+        flagged = bool(re.match(r"\s*(?:[-*]\s*)?⚠", ln))
         if flagged != (abs(pct(cur[m], prev[m])) > 20):
             bad.append(f"{LABEL[m]} {'should' if not flagged else 'should not'} be flagged")
     return not bad, "; ".join(bad)
