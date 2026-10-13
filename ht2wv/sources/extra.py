@@ -101,15 +101,17 @@ def agents_remote(host: str, since: float, cfg: dict, max_bytes: int = 300_000_0
     with tarfile.open(fileobj=io.BytesIO(r.stdout), mode="r:gz") as tf:
         tf.extractall(dest, filter="data")  # refuses absolute paths, links out of the tree, device files
     s, extra = cfg["sources"], cfg["privacy"]["redact_extra"]
-    out = {"ok": True}
+    out = {"ok": True, "parse": {}}
     for kind, fn, sub in (("claude", agents.claude_code, ".claude/projects"), ("codex", agents.codex, ".codex/sessions")):
         root = dest / sub
         if root.exists():
-            evs = agents.dedupe(fn(root, since, s["msg_max_chars"], extra))
+            stats = {}
+            evs = agents.dedupe(fn(root, since, s["msg_max_chars"], extra, stats=stats))
             for e in evs:
                 e["src"], e["host"] = f"{kind}@{host}", host
             store.replace_source(f"{kind}@{host}", evs)
             out[kind] = len(evs)
+            out["parse"][kind] = stats
     return out
 
 
