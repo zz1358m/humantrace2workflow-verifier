@@ -57,8 +57,10 @@ def main(argv=None) -> int:
     p.add_argument("--days", type=float, default=1.0)
     p.add_argument("--top", type=int, default=3)
     p.add_argument("--parallel", type=int, default=1)
-    p.add_argument("--backend")
-    p.add_argument("--model")
+    for name in ("backend", "model", "effort"):
+        p.add_argument(f"--{name}")
+    p.add_argument("--context-window", type=int)
+    p.add_argument("--fast", action="store_true", default=None)
 
     p = sub.add_parser("collect", help="import a non-live source into the trace store")
     cs = p.add_subparsers(dest="source", required=True)
@@ -88,8 +90,10 @@ def main(argv=None) -> int:
     p.add_argument("--task", action="append", help="build only this task (repeatable)")
     p.add_argument("--parallel", type=int, default=1)
     p.add_argument("--skip-profile", action="store_true")
-    for name in ("backend", "model"):
+    for name in ("backend", "model", "effort"):
         p.add_argument(f"--{name}")
+    p.add_argument("--context-window", type=int)
+    p.add_argument("--fast", action="store_true", default=None)
     sub.add_parser("tasks", help="list task candidates found by the profile session")
     sub.add_parser("skills", help="list built skills")
 
@@ -123,6 +127,25 @@ def main(argv=None) -> int:
     p = sub.add_parser("eval", help="verifier/person agreement and acceptance curve")
     p.add_argument("skill")
     p.add_argument("--verifier", help="someone else's or a generic verifier.yaml (coupling control)")
+    p = sub.add_parser("bench", help="synthetic samples: hidden personal style -> records -> pipeline -> rubric + style-coverage scores")
+    bs = p.add_subparsers(dest="action", required=True)
+    q = bs.add_parser("validate", help="check a sample is well-formed and fair")
+    q.add_argument("sample", nargs="+")
+    q = bs.add_parser("prepare", help="render the records in native formats, ingest and compile them (no agent)")
+    q.add_argument("sample")
+    q = bs.add_parser("run", help="prepare -> distill -> execute on the held-out task -> score -> iterate")
+    q.add_argument("sample")
+    q.add_argument("--rounds", type=int, default=1)
+    q.add_argument("--no-judge", action="store_true")
+    q.add_argument("--no-iterate", action="store_true", help="week samples: do not revise the skill after a failed day")
+    for name in ("backend", "model", "effort"):
+        q.add_argument(f"--{name}")
+    q.add_argument("--context-window", type=int)
+    q.add_argument("--fast", action="store_true", default=None)
+    q = bs.add_parser("gen", help="have an agent write records for a sample stub (persona, purpose, rubric, style, task)")
+    q.add_argument("stub")
+    for name in ("backend", "model", "effort"):
+        q.add_argument(f"--{name}")
     p = sub.add_parser("synth", help="write a synthetic demo day (for trying the pipeline without recording)")
     p.add_argument("--day", default="2026-01-05")
     sub.add_parser("status", help="what has been collected, built and spent")
@@ -172,7 +195,7 @@ def main(argv=None) -> int:
         from . import collect, distill
         from .compile import compile_day
 
-        for k in ("backend", "model"):
+        for k in ("backend", "model", "effort", "context_window", "fast"):
             if getattr(a, k):
                 cfg["agent"][k] = getattr(a, k)
         since = time.time() - a.days * 86400
@@ -210,7 +233,7 @@ def main(argv=None) -> int:
     elif a.cmd == "distill":
         from . import distill
 
-        for k in ("backend", "model"):
+        for k in ("backend", "model", "effort", "context_window", "fast"):
             if getattr(a, k):
                 cfg["agent"][k] = getattr(a, k)
         _print(distill.distill(_days(a), a.top, a.task, a.parallel, a.skip_profile, cfg))
@@ -260,6 +283,39 @@ def main(argv=None) -> int:
             print(loop.approve(a.skill))
         elif a.cmd == "eval":
             _print(loop.evaluate(a.skill, a.verifier))
+    elif a.cmd == "bench":
+        from . import bench
+
+        if a.action == "validate":
+            bad = 0
+            for sd in a.sample:
+                sm = bench.load(Path(sd))
+                errs = bench.validate(sm)
+                gold = bench.gold_selfcheck(sm) if not errs else None
+                if gold and gold["passed"] != gold["total"]:
+                    errs += [f"reference output fails rubric {i['id']}: {i['detail']}" for i in gold["items"] if not i["pass"]]
+                bad += bool(errs)
+                print(f"{sm.get('id', sd)}: " + ("ok" if not errs else "INVALID\n  " + "\n  ".join(errs)))
+            return 1 if bad else 0
+        if a.action == "prepare":
+            sm = bench.load(Path(a.sample))
+            _print(bench.prepare(sm, config.home() / "bench" / sm["id"]))
+        elif a.action == "run":
+            over = {k: getattr(a, k) for k in ("backend", "model", "effort", "context_window", "fast")}
+            if bench.load(Path(a.sample)).get("week"):  # long horizon: seven days, state carried over
+                rep = bench.run_week(Path(a.sample), not a.no_judge, over, iterate=not a.no_iterate)
+            else:
+                rep = bench.run(Path(a.sample), a.rounds, not a.no_judge, over)
+            print(bench.render_report(rep))
+        elif a.action == "gen":
+            for k in ("backend", "model", "effort"):
+                if getattr(a, k):
+                    cfg["agent"][k] = getattr(a, k)
+            from . import agent
+
+            stub = Path(a.stub).resolve()
+            r = agent.run("gen-sample", agent.render("gen_sample", stub=stub.name), stub.parent, cfg)
+            print(r.text)
     elif a.cmd == "synth":
         from . import synth
 

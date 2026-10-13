@@ -1,0 +1,17 @@
+% Shared by the English and the Chinese build. Figure text is written as \T{English}{中文};
+% each main file defines \T to pick one.
+\usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds}
+\definecolor{mainc}{HTML}{6B7280}   % mainline behaviour
+\definecolor{offc}{HTML}{C2410C}    % off-mainline behaviour
+\definecolor{wfc}{HTML}{15803D}     % workflow
+\definecolor{verc}{HTML}{1D4ED8}    % verifier
+\definecolor{hidc}{HTML}{9F1239}    % hidden from the system
+\tikzset{
+  >={Stealth[length=4pt,width=4pt]},
+  card/.style={draw=#1, fill=#1!6, rounded corners=2pt, align=left, inner sep=4pt, font={\scriptsize\hyphenpenalty 10000 \exhyphenpenalty 10000 \relax}},
+  card/.default=mainc,
+  pill/.style={draw=#1, fill=#1!10, rounded corners=6pt, align=center, inner sep=3pt, font=\scriptsize},
+  pill/.default=mainc,
+  lab/.style={font=\scriptsize\bfseries, text=#1}, lab/.default=black,
+  note/.style={font=\scriptsize\itshape, text=mainc, align=center},
+}

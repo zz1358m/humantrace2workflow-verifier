@@ -1,0 +1,34 @@
+\begin{tikzpicture}[x=1cm,y=1cm]
+% visible / hidden
+\node[card=mainc, text width=7.4cm] (vis) at (4.0,7.75) {\textbf{\T{Given to the system}{给系统看的}}\\
+\T{purpose: ``handle each day's refunds as I would, then report to me''}{目的：“每天的退款按我的做法处理完，再向我汇报”}\\
+\T{rubric R1--R7: the items she will tick}{rubric R1--R7：她会逐条勾的验收项}\\
+\T{records: agent logs, shell history, chats, browsing}{记录：agent 对话、shell 历史、聊天、浏览}};
+\node[card=hidc, text width=7.4cm] (hid) at (12.35,7.75) {\textbf{\T{Withheld: the pre-filled style the records were written from}{隐藏的：预先填好、用来生成这些记录的个人风格}}\\
+\T{6 in-day ordering rules}{6 条当天内的顺序规则} \hfill S1--S5, S10\\
+\T{5 reporting-style rules}{5 条汇报风格} \hfill S6--S9, S11\\
+\T{6 cross-day rules}{6 条跨天规则} \hfill L1--L6};
+% days
+\foreach \dk/\dn/\dtxt in {0/{\T{Mon}{周一}}/{\T{8 requests\\cap reached\\W107 waits}{8 条申请\\额度用完\\W107 等明天}},
+                      1/{\T{Tue}{周二}}/{\T{W102 approved\\W107 goes first\\2 orders wait}{W102 获批\\W107 排最前\\2 单等明天}},
+                      2/{\T{Wed}{周三}}/{\T{W104 returned\\W101 repeats\\W111 over 500}{W104 已寄回\\W101 重复申请\\W111 超 500}},
+                      3/{\T{Thu}{周四}}/{\T{W111 rejected\\cap reached\\W116 waits}{W111 被驳回\\额度用完\\W116 等明天}},
+                      4/{\T{Fri}{周五}}/{\T{W116 goes first\\W118 over 500\\W121 waits}{W116 排最前\\W118 超 500\\W121 等明天}},
+                      5/{\T{Sat}{周六}}/{\T{W118 approved\\W113 returned\\W121 waits}{W118 获批\\W113 已寄回\\W121 继续等}},
+                      6/{\T{Sun}{周日}}/{\T{W121 goes first\\W125 over 500\\\textbf{week report}}{W121 排最前\\W125 超 500\\\textbf{周汇总}}}}
+  \node[card=mainc, text width=1.92cm, minimum height=1.55cm, inner sep=3pt] (day\dk) at (\dk*2.345+1.14,5.45) {\textbf{\dn}\\[1pt] \dtxt};
+\foreach \dk [evaluate=\dk as \dnext using int(\dk+1)] in {0,...,5}
+  \draw[->, offc, very thick] (day\dk.east) -- (day\dnext.west);
+\node[note, text=offc, text width=15.5cm] at (8.18,4.3) {\T{arrows: the back-office state carries over. the cap resets every day; whatever was left undone is still there tomorrow}{箭头：后台状态延续到第二天。额度每天重置；没办完的事明天还在}};
+% order matters
+\node[lab] at (8.18,3.65) {\T{Why order matters: the same Monday, cap \textyen 1000}{为什么顺序要紧：同一个周一，额度 \textyen 1000}};
+\node[card=wfc, text width=7.4cm] (good) at (4.0,2.2) {\textbf{\T{her order: oldest request first}{她的顺序：先申请的先处理}}\\
+08:50 W103 \textyen 259 \quad 09:02 W101 \textyen 187\\
+09:10 W105 \textyen 150 \quad 09:15 W106 \textyen 329 \quad $\Rightarrow$ \T{\textyen 925 refunded}{共退 \textyen 925}\\
+\T{09:50 W107 \textyen 210 no longer fits: \emph{the latest request waits}}{09:50 的 W107 \textyen 210 放不下：\emph{最晚申请的等明天}}};
+\node[card=offc, text width=7.4cm] (bad) at (12.35,2.2) {\textbf{\T{sheet order: rows as they come}{表格顺序：按行处理}}\\
+W101 \textyen 187 \quad W107 \textyen 210\\
+W106 \textyen 329 \quad W103 \textyen 259 \quad $\Rightarrow$ \T{\textyen 985 refunded}{共退 \textyen 985}\\
+\T{W105 \textyen 150 no longer fits: \emph{09:10 loses to 09:50}}{W105 \textyen 150 放不下：\emph{09:10 申请的输给了 09:50 的}}};
+\node[note, text width=15.5cm] at (8.18,0.85) {\T{every single action is valid in both columns. only the order differs, and the back office ends in a different state}{两边的每一个动作单看都合法，只有顺序不同，后台的最终状态却不一样}};
+\end{tikzpicture}

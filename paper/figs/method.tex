@@ -1,0 +1,30 @@
+\begin{tikzpicture}[x=1cm,y=1cm]
+% row 1: pipeline
+\node[card=mainc, text width=2.45cm, align=center] (rec) at (1.4,6.3) {\textbf{\T{access records}{访问记录}}\\ \T{agent logs, shell and browser history, chats}{agent 对话、shell 与浏览器历史、聊天}\\ \emph{\T{per-source consent}{逐项授权}}};
+\node[card=mainc, text width=2.45cm, align=center] (cmp) at (4.85,6.3) {\textbf{\T{compile}{编译}}\T{, no model}{（不调模型）}\\ \T{timeline plus off-mainline signal candidates}{时间线 + 主线之外的信号候选}};
+\node[card=mainc, text width=2.45cm, align=center] (dst) at (8.3,6.3) {\textbf{\T{distil}{蒸馏}}\T{, agent sessions}{（agent 会话）}\\ \T{A: profile and tasks}{A：画像与任务}\\ \T{B: one skill per task}{B：每个任务一个 skill}};
+\node[card=wfc, text width=4.2cm, align=center] (wf) at (13.1,7.05) {\textbf{workflow}\\ \T{stage prompts 01, 02, 03}{各阶段的 prompt：01、02、03}};
+\node[card=verc, text width=4.2cm, align=center] (vf) at (13.1,5.55) {\textbf{verifier}\\ \T{objective, process, style,\\ preference, report $+$ policy}{客观、顺序、风格、偏好、汇报\\ $+$ 检查方式}};
+\draw[->] (rec) -- (cmp); \draw[->] (cmp) -- (dst);
+\draw[->] (dst.east) -- (wf.west); \draw[->] (dst.east) -- (vf.west);
+\node[font=\tiny, text=mainc, align=center] at (10.35,6.3) {\T{must\\pass lint}{须通过\\lint}};
+% row 2: execution
+\node[lab] at (1.4,3.2) {\T{execute}{执行} $\rightarrow$};
+\foreach \sk/\sx in {1/3.9,2/6.9,3/9.9}
+  \node[card=wfc, text width=2.2cm, align=center] (s\sk) at (\sx,3.2) {\textbf{\T{session}{会话} \sk}\\ \T{stage 0\sk{} prompt}{阶段 0\sk{} 的 prompt}\\ \textcolor{verc}{$+$ \T{verifier prompt}{verifier 的 prompt}}};
+\node[card=mainc, text width=2.2cm, align=center] (out) at (13.1,3.2) {\textbf{\T{output}{产出}}\\ \T{and a report\\ to the person}{以及给本人的\\ 汇报}};
+\draw[->] (s1) -- node[above, font=\tiny] {\T{files}{文件}} (s2); \draw[->] (s2) -- node[above, font=\tiny] {\T{files}{文件}} (s3); \draw[->] (s3) -- (out);
+\draw[verc, thick] (vf.south) -- (13.1,4.5) -- (3.9,4.5);
+\foreach \sx in {3.9,6.9,9.9} \draw[->, verc, thick] (\sx,4.5) -- (\sx,3.78);
+\node[font=\tiny, text=verc] at (8.0,4.68) {\T{one shared definition of done, attached to every session}{同一份“做对了”的定义，附给每一个会话}};
+% row 3: signals
+\node[card=mainc, text width=2.6cm, align=center] (fb) at (13.1,1.1) {\T{she ticks the \textbf{rubric}\\ (stated, visible)}{本人勾 \textbf{rubric}\\ （说出口的、可见的）}};
+\node[card=mainc, text width=3.2cm, align=center] (it) at (8.0,1.1) {\T{\textbf{iterate} session\\ repair stages; add verifier\\ items backed by evidence}{\textbf{迭代}会话\\ 修各阶段；补上有证据的\\ 验收条目}};
+\node[card=hidc, text width=1.55cm, align=center] (pr) at (15.75,3.2) {\textbf{\T{hidden style}{隐藏风格}}\\ \T{probes give coverage}{探针给出覆盖率}};
+\draw[->] (out) -- (fb);
+\draw[->] (fb) -- (it);
+\draw[->] (it.west) -- (-0.3,1.1) -- (-0.3,8.0) -- (13.1,8.0) -- (wf.north);
+\node[font=\tiny, text=mainc, rotate=90] at (-0.5,4.5) {\T{revised skill}{修订后的 skill}};
+\draw[->, hidc, dashed, thick] (pr.north) -- (15.75,5.55) -- (vf.east);
+\node[font=\tiny, text=hidc, align=center] at (15.75,2.2) {\T{evaluation only,\\never fed back}{只用于评测，\\从不反馈}};
+\end{tikzpicture}

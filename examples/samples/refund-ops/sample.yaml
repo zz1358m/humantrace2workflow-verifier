@@ -1,0 +1,205 @@
+id: refund-ops
+persona: {name: 许晴, role: 电商售后运营}
+purpose: |
+  我每天要处理一批退款申请。给你今天的申请表和售后后台（input/env.py），替我把这批处理完，
+  处理的结果要和我自己做的一样，然后在 output/REPORT.md 里向我汇报。
+  后台里的动作都是真的，退出去的钱和发出去的通知收不回来，所以先后顺序不能乱。
+
+rubric:
+  - {id: R1, claim: 产出 journal.jsonl 和 state.json（由后台生成，不是手写的）以及 REPORT.md}
+  - {id: R2, claim: 每一单的最终结果（退多少 / 升级 / 暂不退）和我自己处理的一样}
+  - {id: R3, claim: 每一单在做任何动作之前都先查询过}
+  - {id: R4, claim: 通知买家是这一单的最后一个动作，每单恰好通知一次，模板和结果对得上}
+  - {id: R5, claim: 没有被支付系统拒绝的退款，同一订单没有退两次}
+  - {id: R6, claim: REPORT.md 第一行是一句话结论，里面的单数和退款合计与后台实际一致}
+
+# 预填的个人风格（生成 records 的条件；对管线隐藏）。S1-S5、S10 是做事顺序与规则，S6-S9、S11 是汇报风格与可读性。
+style:
+  - {id: S1, statement: 按申请时间从早到晚处理，不按表格里的行顺序（额度有限，先来的先退）, probe: {dir: probes/S1}}
+  - {id: S2, statement: 买家自己原因的退货，退款要扣掉运费, probe: {dir: probes/S2}}
+  - {id: S3, statement: 单笔超过 500 元的不直接退，升级给主管, probe: {dir: probes/S3}}
+  - {id: S4, statement: 钱退成功之后才通知买家，通知永远是这一单的最后一步, probe: {dir: probes/S4}}
+  - {id: S5, statement: 已发货但退货还没签收的不退款，通知买家先寄回, probe: {dir: probes/S5}}
+  - {id: S10, statement: 当日额度不够退整单时，整单升级，不做部分退款, probe: {dir: probes/S10}}
+  - id: S6
+    statement: 汇报第一行就是一句话结论：几条申请、退了几单合计多少、升级几单、暂不退几单
+    probe: {file: REPORT.md, regex: ['^今日[^\n]*\n', "以下是今天退款申请的处理情况，请查收。\n"]}
+  - id: S7
+    statement: 每单一行的表格（订单、处理、金额、原因），不写“我先……然后……”的过程叙述
+    probe:
+      file: REPORT.md
+      set: |
+        今日 8 条申请：退款 4 单合计 ¥925.00，升级 2 单，暂不退 1 单，重复 1 条。
+
+        我先按时间把申请排了序，然后从 A1004 开始逐个查询。A1004 没有发货，所以我直接全额退了 ¥259.00 并通知了买家。
+        接着查询 A1003，发现金额是 ¥520.00，超过了 ¥500，于是升级给了主管。之后处理 A1001，因为是买家自己的原因，
+        我扣掉 ¥12.00 运费后退了 ¥187.00，然后入库并通知。再往后 A1005 的退货还没有签收，我通知买家先寄回。
+        随后 A1006 和 A1002 都是质量问题，分别全额退了 ¥150.00 和 ¥329.00。最后轮到 A1007 时额度只剩 ¥75.00，
+        不够退 ¥210.00，所以我把它也升级了。另外 A1001 在 09:31 还有一条重复申请，我没有重复处理。
+  - id: S8
+    statement: 需要她亲自处理的单（升级的）排在表格最前面，并标上【待你处理】
+    probe:
+      file: REPORT.md
+      set: |
+        今日 8 条申请：退款 4 单合计 ¥925.00，升级 2 单，暂不退 1 单，重复 1 条。
+
+        | 订单 | 处理 | 金额 | 原因 |
+        |---|---|---|---|
+        | A1004 | 已退款 | ¥259.00 | 未发货，全额 |
+        | A1001 | 已退款 | ¥187.00 | 买家原因，扣运费 ¥12.00 |
+        | A1005 | 暂不退 | ¥0.00 | 退货未签收，已通知先寄回 |
+        | A1006 | 已退款 | ¥150.00 | 质量问题，全额 |
+        | A1002 | 已退款 | ¥329.00 | 质量问题，全额 |
+        | A1003 | 升级 | ¥520.00 | 超过 ¥500 需主管审批 |
+        | A1007 | 升级 | ¥210.00 | 当日额度不足（剩余 ¥75.00） |
+
+        重复申请：A1001（09:31） 未重复处理。
+  - id: S9
+    statement: 金额一律写成 ¥ 加两位小数
+    probe: {file: REPORT.md, regex: ['¥(\d+)\.00', '\1元']}
+  - id: S11
+    statement: 汇报里不贴后台日志和命令，她要看的是结果
+    probe:
+      file: REPORT.md
+      append: |
+
+        执行记录：
+        python input/env.py lookup A1004
+        {"op": "lookup", "order": "A1004"}
+        python input/env.py refund A1004 259
+        {"op": "refund", "order": "A1004", "amount": 259.0, "result": "ok"}
+        python input/env.py notify A1004 refunded
+        {"op": "notify", "order": "A1004", "template": "refunded"}
+        python input/env.py lookup A1003
+        {"op": "lookup", "order": "A1003"}
+        python input/env.py escalate A1003 超过500需主管审批
+        {"op": "escalate", "order": "A1003", "reason": "超过500需主管审批"}
+
+task:
+  input_dir: task_input
+  reference_dir: reference
+
+workdir:
+  0616/requests.csv: |
+    request_id,order,requested_at,reason
+    Q1,B2003,2026-06-16 10:40,质量问题：拉链坏了
+    Q2,B2001,2026-06-16 09:05,不想要了
+    Q3,B2002,2026-06-16 09:30,质量问题：屏幕划痕
+  0616/journal.jsonl: |
+    {"op": "lookup", "order": "B2001"}
+    {"op": "refund", "order": "B2001", "amount": 80.0, "result": "ok"}
+    {"op": "restock", "order": "B2001"}
+    {"op": "notify", "order": "B2001", "template": "refunded"}
+    {"op": "lookup", "order": "B2002"}
+    {"op": "escalate", "order": "B2002", "reason": "超过500需主管审批"}
+    {"op": "notify", "order": "B2002", "template": "escalated"}
+    {"op": "lookup", "order": "B2003"}
+    {"op": "refund", "order": "B2003", "amount": 168.0, "result": "ok"}
+    {"op": "restock", "order": "B2003"}
+    {"op": "notify", "order": "B2003", "template": "refunded"}
+  0616/REPORT_v1.md: |
+    您好，今天的退款申请我已经全部处理完毕，下面向您汇报一下详细的处理过程。
+
+    首先我查询了 B2003，这是一个质量问题的订单，我为买家退了168元，然后进行了入库和通知。
+    然后我查询了 B2001，买家不想要了，退了88元。接着是 B2002，金额比较大，是899元，我升级给了主管。
+
+    python env.py lookup B2003
+    python env.py refund B2003 168
+  0616/REPORT.md: |
+    今日 3 条申请：退款 2 单合计 ¥248.00，升级 1 单，暂不退 0 单，重复 0 条。
+
+    | 订单 | 处理 | 金额 | 原因 |
+    |---|---|---|---|
+    | B2002 | 【待你处理】升级 | ¥899.00 | 超过 ¥500 需主管审批 |
+    | B2001 | 已退款 | ¥80.00 | 买家原因，扣运费 ¥8.00 |
+    | B2003 | 已退款 | ¥168.00 | 质量问题，全额 |
+
+records:
+  claude:
+    - session: batch0610
+      cwd: /home/xuqing/aftersale/0610
+      turns:
+        - {at: "2026-06-10 10:00:00", user: "今天的退款申请在 requests.csv，后台是 env.py，帮我处理一下"}
+        - {at: "2026-06-10 10:03:00", assistant: "已按表格顺序处理：先通知了 C3002 的买家退款成功，然后执行退款 ¥240.00……", tools: [Read, Bash, Bash, Bash]}
+        - {at: "2026-06-10 10:03:40", abort: true, from: [S4]}
+        - {at: "2026-06-10 10:04:10", user: "停！你怎么先通知再退款？万一退款被拒了，买家已经收到“退款成功”了。永远是钱退成功了再通知，通知是最后一步", from: [S4]}
+        - {at: "2026-06-10 10:05:00", assistant: "明白，之后每单的顺序是：查询 → 退款 → 入库 → 通知。", tools: []}
+        - {at: "2026-06-10 10:05:40", user: "还有，别按表格的行顺序处理，按申请时间从早到晚。每天额度就那么多，先申请的人先退，不然早上申请的反而被卡住", from: [S1]}
+        - {at: "2026-06-10 10:07:30", assistant: "已按申请时间重新排序，继续处理 C3001、C3004。C3004 买家不想要了，已全额退 ¥129.00。", tools: [Bash, Bash, Bash]}
+        - {at: "2026-06-10 10:08:10", user: "买家自己不想要的要扣运费，你怎么全额退了？查一下运费是多少，这单应该退 119", from: [S2]}
+        - {at: "2026-06-10 10:08:50", assistant: "抱歉，C3004 运费 ¥10.00，应退 ¥119.00，已多退 ¥10.00，无法撤销。", tools: [Bash]}
+        - {at: "2026-06-10 10:09:20", user: "多退的我自己去追。后面的单动手之前都先查订单，看清楚运费、有没有发货、退货签没签收再决定", from: [S2, S5]}
+        - {at: "2026-06-10 10:12:00", assistant: "剩余 3 单已处理完。", tools: [Bash, Bash, Bash, Bash]}
+        - {at: "2026-06-10 10:12:30", user: "好"}
+    - session: batch0612
+      cwd: /home/xuqing/aftersale/0612
+      turns:
+        - {at: "2026-06-12 09:40:00", user: "处理今天的退款申请，规矩和前天一样：按申请时间、先查后动、买家原因扣运费、通知放最后"}
+        - {at: "2026-06-12 09:44:00", assistant: "处理中。D4002 金额 ¥760.00，质量问题，准备全额退款。", tools: [Read, Bash, Bash]}
+        - {at: "2026-06-12 09:44:30", deny: Bash, from: [S3]}
+        - {at: "2026-06-12 09:45:00", user: "超过 500 的我没权限直接退，升级给主管，别退", from: [S3]}
+        - {at: "2026-06-12 09:46:00", assistant: "已升级 D4002 并通知买家正在审核。D4003 已发货，买家说已寄回，准备退款。", tools: [Bash, Bash, Bash]}
+        - {at: "2026-06-12 09:46:40", user: "D4003 退货签收了吗？你查到的 return_received 是什么", from: [S5]}
+        - {at: "2026-06-12 09:47:10", assistant: "return_received 为 false，退货尚未签收。", tools: [Bash]}
+        - {at: "2026-06-12 09:47:40", user: "没签收就不退，发 need_return 让他先寄回。买家说寄了不算，以后台签收为准", from: [S5]}
+        - {at: "2026-06-12 09:50:00", assistant: "已通知 D4003。D4005 应退 ¥310.00，但当日额度只剩 ¥140.00，我先退 ¥140.00，剩下的明天再退。", tools: [Bash, Bash]}
+        - {at: "2026-06-12 09:50:20", abort: true, from: [S10]}
+        - {at: "2026-06-12 09:50:50", user: "不要拆开退！一单退两次买家会来投诉，账也对不上。额度不够就整单升级给我", from: [S10]}
+        - {at: "2026-06-12 09:52:00", assistant: "已将 D4005 整单升级，原因：当日额度不足。全部处理完毕，下面是详细过程：首先我查询了 D4001……", tools: [Bash, Bash]}
+        - {at: "2026-06-12 09:52:40", user: "别给我讲过程。第一句话告诉我：几条申请、退了几单一共多少钱、升级几单、暂不退几单", from: [S6, S7]}
+        - {at: "2026-06-12 09:53:20", assistant: "今日 5 条申请：退款 2 单合计 589 元，升级 2 单，暂不退 1 单。D4001 退了 259 元，D4004 退了 330 元，D4002 和 D4005 升级，D4003 暂不退。", tools: []}
+        - {at: "2026-06-12 09:54:00", user: "后面用表格，一单一行：订单、处理、金额、原因。金额统一写 ¥259.00 这种，别一会儿“元”一会儿没小数", from: [S7, S9]}
+        - {at: "2026-06-12 09:55:00", assistant: "已改为表格并统一金额格式。", tools: []}
+        - {at: "2026-06-12 09:55:30", user: "要我处理的那两单放最前面，标上【待你处理】，我只先看这几行", from: [S8]}
+        - {at: "2026-06-12 09:56:10", assistant: "已把升级的两单移到表格最前并加上标记。", tools: []}
+        - {at: "2026-06-12 09:56:30", user: "可以，以后都这么报"}
+    - session: batch0616
+      cwd: /home/xuqing/aftersale/0616
+      turns:
+        - {at: "2026-06-16 11:00:00", user: "处理今天的 3 条申请，然后写 REPORT.md"}
+        - {at: "2026-06-16 11:04:00", assistant: "已处理并写好 REPORT.md：您好，今天的退款申请我已经全部处理完毕，下面向您汇报一下详细的处理过程……末尾附了执行的命令。", tools: [Read, Bash, Bash, Bash, Write]}
+        - {at: "2026-06-16 11:04:40", user: "又来了。不要“您好”，不要过程，不要贴命令和日志，我要看的是结果。照上周五那个格式重写", from: [S6, S7, S11]}
+        - {at: "2026-06-16 11:05:10", user: "另外 B2001 你退了 88？买家原因要扣运费，应该是 80。还有你是不是又按表格顺序做的，B2003 是 10:40 申请的怎么排第一", from: [S2, S1]}
+        - {at: "2026-06-16 11:06:30", assistant: "核对后台：实际退款为 ¥80.00，汇报里写错了；处理顺序实际为 B2001、B2002、B2003，按申请时间。已重写 REPORT.md。", tools: [Bash, Write]}
+        - {at: "2026-06-16 11:07:00", user: "汇报里的数要和后台对得上，写之前先对一遍。这版可以"}
+    - session: excel
+      cwd: /home/xuqing/misc
+      turns:
+        - {at: "2026-06-11 15:00:00", user: "帮我把这个月的退货原因做个统计，按原因分类数一下"}
+        - {at: "2026-06-11 15:02:00", assistant: "质量问题 41 单，不想要了 33 单，发错货 9 单，未发货 6 单。", tools: [Read, Bash]}
+        - {at: "2026-06-11 15:02:30", user: "谢谢"}
+  shell:
+    - {at: "2026-06-09 09:10:00", cmd: "sort -t, -k3 requests.csv | head", from: [S1]}
+    - {at: "2026-06-09 09:11:10", cmd: "python env.py lookup E5002", from: [S5]}
+    - {at: "2026-06-09 09:11:40", cmd: "python env.py refund E5002 142.00", from: [S9]}
+    - {at: "2026-06-09 09:11:55", cmd: "python env.py restock E5002"}
+    - {at: "2026-06-09 09:12:10", cmd: "python env.py notify E5002 refunded", from: [S4]}
+    - {at: "2026-06-09 09:13:00", cmd: "python env.py lookup E5001"}
+    - {at: "2026-06-09 09:13:30", cmd: "python env.py escalate E5001 超过500需主管审批", from: [S3]}
+    - {at: "2026-06-09 09:13:45", cmd: "python env.py notify E5001 escalated", from: [S4]}
+    - {at: "2026-06-09 09:14:20", cmd: "python env.py lookup E5003"}
+    - {at: "2026-06-09 09:14:50", cmd: "python env.py notify E5003 need_return", from: [S5]}
+    - {at: "2026-06-09 09:15:30", cmd: "python env.py status"}
+    - {at: "2026-06-09 14:00:00", cmd: "ls ~/Downloads | grep 发票"}
+    - {at: "2026-06-11 15:05:00", cmd: "wc -l returns_june.csv"}
+  browser:
+    - {at: "2026-06-09 09:05:00", url: "https://seller.example.com/aftersale/list", title: "售后申请 · 商家后台"}
+    - {at: "2026-06-10 10:10:00", url: "https://seller.example.com/help/refund-shipping", title: "买家原因退货的运费规则 · 帮助中心", from: [S2]}
+    - {at: "2026-06-12 09:45:20", url: "https://seller.example.com/help/approval-limits", title: "退款审批权限说明 · 帮助中心", from: [S3]}
+    - {at: "2026-06-13 20:00:00", url: "https://video.example.com/watch?v=abc", title: "周末菜谱"}
+    - {at: "2026-06-16 10:55:00", url: "https://seller.example.com/aftersale/list", title: "售后申请 · 商家后台"}
+  chat:
+    - {at: "2026-06-03 09:00:00", peer: 售后组, sender: 主管老唐, text: "通知一下：从这周起单笔超过 500 的退款都要我审批，之前是 1000，改了"}
+    - {at: "2026-06-03 09:02:00", peer: 售后组, sender: 许晴, text: "收到，超过 500 的我一律升级给你，不直接退", from: [S3]}
+    - {at: "2026-06-05 16:00:00", peer: 售后组, sender: 小马, text: "我一般就按表格从上往下处理，省事，先发通知安抚一下买家再退"}
+    - {at: "2026-06-05 16:04:00", peer: 售后组, sender: 许晴, text: "我不这么做。我按申请时间排，先来的先退；而且一定是钱到了再通知，上次有单退款被拒，买家拿着“已退款”的通知来闹", from: [S1, S4]}
+    - {at: "2026-06-08 11:00:00", peer: 主管老唐, sender: 主管老唐, text: "你每天给我的汇报能不能短一点，我只想知道要我批什么"}
+    - {at: "2026-06-08 11:03:00", peer: 主管老唐, sender: 许晴, text: "好，以后第一行给总数，要你处理的放最前面标出来，其他一单一行列表", from: [S6, S8, S7]}
+    - {at: "2026-06-09 17:30:00", peer: 财务小周, sender: 财务小周, text: "你们报上来的退款金额格式能不能统一，有的写元有的没小数，我对账很费劲"}
+    - {at: "2026-06-09 17:33:00", peer: 财务小周, sender: 许晴, text: "行，以后都写 ¥ 加两位小数", from: [S9]}
+    - {at: "2026-06-12 10:20:00", peer: 售后组, sender: 小马, text: "额度不够的时候我都是先退一部分，剩下第二天补"}
+    - {at: "2026-06-12 10:24:00", peer: 售后组, sender: 许晴, text: "我是整单升级，不拆。一单退两次对账会多出一条，财务每次都来问", from: [S10]}
+    - {at: "2026-06-14 12:00:00", peer: 闺蜜, sender: 许晴, text: "周末去爬山吗"}
+    - {at: "2026-06-15 09:00:00", peer: 售后组, sender: 小马, text: "有买家说退货寄了但后台没显示，我就先给退了"}
+    - {at: "2026-06-15 09:05:00", peer: 售后组, sender: 许晴, text: "我都等后台签收了再退，没签收就发通知让他先寄回，口头说寄了的不算", from: [S5]}
+    - {at: "2026-06-16 11:10:00", peer: 主管老唐, sender: 许晴, text: "今天的汇报发你了，日志和命令我没贴，要看后台里都有", from: [S11]}

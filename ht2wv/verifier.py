@@ -10,7 +10,9 @@ verifier.yaml
   inherits: path to the person-level acceptance-style.yaml (optional)
   policy:   how this person checks — check_depth, timing, on_fail, max_fix_rounds, escalate_when
   items:
-    - id, layer (objective | style | preference), claim
+    - id, layer (objective | process | style | preference | report), claim
+      process = the order and gating of actions (checked on the action journal the run leaves behind)
+      report  = how the result is reported back to this person: structure, length, readability
       how: check   -> check: checks/x.py   (python x.py --input DIR --output DIR; last stdout line = {"pass": bool, "detail": str})
       how: judge   -> rubric: what a reviewer should look for
       cases: [<case id>, ...] (optional, judge only): existing reject cases this item is expected to fail
@@ -27,7 +29,7 @@ from pathlib import Path
 
 import yaml
 
-LAYERS = ("objective", "style", "preference")
+LAYERS = ("objective", "process", "style", "preference", "report")
 SOURCES = ("observed", "stated", "corrected", "hypothesized")
 
 
@@ -46,7 +48,7 @@ def load(skill_dir: Path, file: str = "verifier.yaml") -> dict:
             for it in style.get("items", []):
                 applies = it.get("applies_to", ["*"])
                 if it["id"] not in own and ("*" in applies or kinds & set(applies)):
-                    v["items"].append({**it, "layer": "style", "inherited": True})
+                    v["items"].append({**it, "layer": "report" if it.get("layer") == "report" else "style", "inherited": True})
             v["policy"] = {**style.get("policy", {}), **v["policy"]}
     return v
 

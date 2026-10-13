@@ -1,0 +1,11 @@
+{"op": "lookup", "order": "W113"}
+{"op": "refund", "order": "W113", "amount": 80.0, "result": "ok"}
+{"op": "restock", "order": "W113"}
+{"op": "notify", "order": "W113", "template": "refunded"}
+{"op": "lookup", "order": "W118"}
+{"op": "refund", "order": "W118", "amount": 700.0, "result": "ok"}
+{"op": "restock", "order": "W118"}
+{"op": "notify", "order": "W118", "template": "refunded"}
+{"op": "lookup", "order": "W122"}
+{"op": "refund", "order": "W122", "amount": 130.0, "result": "ok"}
+{"op": "notify", "order": "W122", "template": "refunded"}

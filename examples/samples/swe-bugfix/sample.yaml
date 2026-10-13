@@ -1,0 +1,205 @@
+id: swe-bugfix
+persona: {name: 陈默, role: 后端工程师}
+purpose: |
+  给我一个 issue 和出问题的模块（带现有测试），把 bug 修掉，交付可以直接提交的改动：
+  改好的源码、测试文件、一条 commit message。我会直接拿去提交，所以不要留尾巴。
+
+rubric:
+  - {id: R1, claim: 产出恰好三个文件：pricing.py、test_pricing.py、COMMIT_MSG.txt}
+  - {id: R2, claim: issue 里描述的两个错误都修好了（会员折扣只算一次；价格不会低于 0）}
+  - {id: R3, claim: final_price 的函数签名（参数名、顺序、默认值）没有变}
+  - {id: R4, claim: 原有的测试函数一个都没被删改}
+  - {id: R5, claim: 'commit message 第一行形如 "fix(pricing): 说明"，不超过 72 个字符；正文里带上 issue 号'}
+
+style:
+  - id: S1
+    statement: 修 bug 必须同时加一个能复现该 bug 的回归测试
+    probe:
+      file: test_pricing.py
+      set: |
+        from pricing import final_price
+
+
+        def test_no_discount():
+            assert final_price(100) == 100
+
+
+        def test_member_discount_without_coupon():
+            assert final_price(200, member=True) == 180
+  - id: S2
+    statement: 不为了让测试通过去改已有的测试
+    probe: {file: test_pricing.py, replace: ["assert final_price(200, member=True) == 180", "assert final_price(200, member=True) == 162"]}
+  - id: S3
+    statement: 'commit message 用 "type(scope): 说明" 的格式并引用 issue 号'
+    probe: {file: COMMIT_MSG.txt, set: "fixed the pricing bug\n"}
+  - id: S4
+    statement: 只改必要的行，不顺手重排格式、不重命名、不加无关的东西
+    probe:
+      file: pricing.py
+      set: |
+        MEMBER_RATE = 0.9
+
+
+        def _apply_member(amount: float) -> float:
+            return amount * MEMBER_RATE
+
+
+        def final_price(price: float, member: bool = False, coupon: float = 0.0) -> float:
+            """Return the price after member discount (10%) and a fixed coupon, never below zero."""
+            amount = _apply_member(price) if member else price
+            amount = amount - coupon
+            return round(max(amount, 0.0), 2)
+
+
+        def format_price(amount: float) -> str:
+            return f"¥{amount:.2f}"
+  - id: S5
+    statement: 提交的代码里不留调试输出
+    probe: {file: pricing.py, replace: ["    price = price - coupon\n", "    price = price - coupon\n    print(\"DEBUG price after coupon\", price)\n"]}
+  - id: S6
+    statement: 不为一个小修复引入新的依赖
+    probe: {file: pricing.py, replace: ["def final_price", "import numpy as np\n\n\ndef final_price"]}
+  - id: S7
+    statement: 先写出能复现问题的失败测试，再动源码
+    probe: null
+
+task:
+  input:
+    ISSUE.md: |
+      # #482 会员叠加优惠券时价格算错
+
+      - `final_price(100, member=True, coupon=10)` 返回 72.9，应为 80.0（会员九折只应该算一次）。
+      - `final_price(5, coupon=10)` 返回 -5，价格不应低于 0。
+    pricing.py: |
+      def final_price(price: float, member: bool = False, coupon: float = 0.0) -> float:
+          """Return the price after member discount (10%) and a fixed coupon, never below zero."""
+          if member:
+              price = price * 0.9
+          price = price - coupon
+          if member:
+              price = price * 0.9
+          return round(price, 2)
+    test_pricing.py: |
+      from pricing import final_price
+
+
+      def test_no_discount():
+          assert final_price(100) == 100
+
+
+      def test_member_discount_without_coupon():
+          assert final_price(200, member=True) == 180
+  reference_output:
+    pricing.py: |
+      def final_price(price: float, member: bool = False, coupon: float = 0.0) -> float:
+          """Return the price after member discount (10%) and a fixed coupon, never below zero."""
+          if member:
+              price = price * 0.9
+          price = price - coupon
+          return round(max(price, 0.0), 2)
+    test_pricing.py: |
+      from pricing import final_price
+
+
+      def test_no_discount():
+          assert final_price(100) == 100
+
+
+      def test_member_discount_without_coupon():
+          assert final_price(200, member=True) == 180
+
+
+      def test_member_discount_applied_once_with_coupon():
+          assert final_price(100, member=True, coupon=10) == 80.0
+
+
+      def test_price_never_below_zero():
+          assert final_price(5, coupon=10) == 0
+    COMMIT_MSG.txt: |
+      fix(pricing): apply member discount once and clamp price at zero
+
+      Refs #482
+
+workdir:
+  git-log.txt: |
+    a41c9e2 fix(cart): keep quantity when merging duplicate lines (#467)
+    7be0d15 fix(auth): reject expired refresh tokens (#455)
+    3f2a8c0 feat(orders): export orders as csv (#431)
+    c9d1e77 fix(cart): round line totals before summing (#428)
+  cart_fix_467.diff: |
+    --- a/cart.py
+    +++ b/cart.py
+    @@ -14,7 +14,7 @@ def merge_lines(lines):
+         for line in lines:
+             key = line.sku
+             if key in merged:
+    -            merged[key].qty = line.qty
+    +            merged[key].qty += line.qty
+             else:
+                 merged[key] = line
+    --- a/test_cart.py
+    +++ b/test_cart.py
+    @@ -30,0 +31,5 @@
+    +def test_merge_keeps_quantity_of_duplicates():
+    +    lines = [Line("A", 1), Line("A", 2)]
+    +    assert merge_lines(lines)[0].qty == 3
+
+records:
+  claude:
+    - session: fix455
+      cwd: /home/chenmo/shop-api
+      turns:
+        - {at: "2026-04-07 10:02:00", user: "#455：过期的 refresh token 还能换到新 token，查一下 auth.py"}
+        - {at: "2026-04-07 10:03:30", assistant: "定位到 refresh() 没检查 exp，我直接改了 auth.py 并把相关测试的期望值调整了。", tools: [Read, Edit, Edit]}
+        - {at: "2026-04-07 10:04:10", user: "停。先别改源码，先写一个能复现的失败测试给我看", from: [S7, S1]}
+        - {at: "2026-04-07 10:05:40", assistant: "已添加 test_expired_refresh_token_rejected，当前失败。", tools: [Edit, Bash]}
+        - {at: "2026-04-07 10:06:10", user: "还有，你刚才是不是改了已有测试的期望值？改回去。测试挂了说明代码有问题，不是测试有问题", from: [S2]}
+        - {at: "2026-04-07 10:07:00", assistant: "已恢复原测试。现在修改 refresh() 增加过期检查，全部测试通过。", tools: [Edit, Edit, Bash]}
+        - {at: "2026-04-07 10:07:40", user: "auth.py 里那两行 print 删掉", from: [S5]}
+        - {at: "2026-04-07 10:08:10", assistant: "已删除调试输出。", tools: [Edit]}
+        - {at: "2026-04-07 10:08:40", user: "commit message 写成 fix(auth): ... 这种，正文带上 #455", from: [S3]}
+        - {at: "2026-04-07 10:09:10", assistant: "fix(auth): reject expired refresh tokens\n\nRefs #455", tools: []}
+        - {at: "2026-04-07 10:09:30", user: "ok"}
+    - session: fix467
+      cwd: /home/chenmo/shop-api
+      turns:
+        - {at: "2026-04-15 15:20:00", user: "#467 合并购物车重复行的时候数量丢了，修一下，记得先复现", from: [S7]}
+        - {at: "2026-04-15 15:22:30", assistant: "已添加失败测试并修复 merge_lines；顺手用 black 格式化了 cart.py，并把 Line 重命名为 CartLine。", tools: [Edit, Edit, Bash]}
+        - {at: "2026-04-15 15:23:10", user: "你把整个文件格式化了还改了类名，diff 两百多行我没法 review。只改必要的那一行，其他全部还原", from: [S4]}
+        - {at: "2026-04-15 15:24:20", assistant: "已还原无关改动，diff 现在只有 1 行源码和新增的测试。", tools: [Bash, Edit]}
+        - {at: "2026-04-15 15:24:50", user: "为什么 requirements 里多了个 more-itertools？一个 += 的事，别加依赖", from: [S6]}
+        - {at: "2026-04-15 15:25:30", assistant: "已移除新增依赖，改用内置写法。", tools: [Edit]}
+        - {at: "2026-04-15 15:26:00", user: "测试跑过了吗？把输出贴给我"}
+        - {at: "2026-04-15 15:26:40", assistant: "pytest -q：18 passed。", tools: [Bash]}
+        - {at: "2026-04-15 15:27:00", user: "可以，提交信息照老规矩", from: [S3]}
+    - session: csvexport
+      cwd: /home/chenmo/shop-api
+      turns:
+        - {at: "2026-04-10 11:00:00", user: "给 orders 加个导出 csv 的接口，字段见 docs/export.md"}
+        - {at: "2026-04-10 11:06:00", assistant: "已实现 GET /orders/export 并补充了测试。", tools: [Read, Edit, Edit, Bash]}
+        - {at: "2026-04-10 11:07:00", user: "行，我看下"}
+  shell:
+    - {at: "2026-04-07 10:05:50", cmd: "pytest -q tests/test_auth.py -k expired", from: [S7]}
+    - {at: "2026-04-07 10:07:10", cmd: "git diff --stat", from: [S4]}
+    - {at: "2026-04-07 10:08:20", cmd: "grep -rn \"print(\" src/ | grep -v logging", from: [S5]}
+    - {at: "2026-04-07 10:09:40", cmd: "git commit -F COMMIT_MSG.txt", from: [S3]}
+    - {at: "2026-04-07 10:10:00", cmd: "git log --oneline -3"}
+    - {at: "2026-04-10 11:08:00", cmd: "docker compose up -d db"}
+    - {at: "2026-04-15 15:24:30", cmd: "git diff --stat", from: [S4]}
+    - {at: "2026-04-15 15:25:40", cmd: "git diff requirements.txt", from: [S6]}
+    - {at: "2026-04-15 15:26:10", cmd: "pytest -q"}
+    - {at: "2026-04-15 15:27:30", cmd: "git diff -- tests/ | grep '^-' | grep -v '^---'", from: [S2]}
+    - {at: "2026-04-16 09:10:00", cmd: "kubectl get pods -n staging"}
+  browser:
+    - {at: "2026-04-07 09:58:00", url: "https://git.example.com/shop/shop-api/issues/455", title: "#455 过期 refresh token 仍可换新 · shop-api"}
+    - {at: "2026-04-15 15:18:00", url: "https://git.example.com/shop/shop-api/issues/467", title: "#467 合并购物车重复行数量丢失 · shop-api"}
+    - {at: "2026-04-15 16:00:00", url: "https://www.conventionalcommits.org/zh-hans/v1.0.0/", title: "约定式提交", from: [S3]}
+    - {at: "2026-04-16 14:00:00", url: "https://docs.python.org/3/library/decimal.html", title: "decimal — Python 文档"}
+  chat:
+    - {at: "2026-04-08 17:30:00", peer: 后端组, sender: 小吴, text: "我那个 PR 你看了吗"}
+    - {at: "2026-04-08 17:34:00", peer: 后端组, sender: 陈默, text: "看了，修 bug 的 PR 没带回归测试我不合，补一个能复现的再叫我", from: [S1]}
+    - {at: "2026-04-08 17:36:00", peer: 后端组, sender: 小吴, text: "那个测试我改了下期望值就过了"}
+    - {at: "2026-04-08 17:38:00", peer: 后端组, sender: 陈默, text: "期望值不能动，那是原来的行为约定。要改先开 issue 说清楚", from: [S2]}
+    - {at: "2026-04-14 11:00:00", peer: 后端组, sender: 阿杰, text: "中午吃啥"}
+    - {at: "2026-04-14 11:01:00", peer: 后端组, sender: 陈默, text: "面"}
+    - {at: "2026-04-16 10:20:00", peer: 小吴, sender: 陈默, text: "你这个 PR 里混了一堆格式化改动，拆出去单独提，修 bug 的 diff 要能一眼看完", from: [S4]}

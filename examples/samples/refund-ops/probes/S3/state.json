@@ -1,0 +1,51 @@
+{
+ "cap": 1000.0,
+ "refunded_total": 966.0,
+ "refunds": {
+  "A1004": 259.0,
+  "A1003": 520.0,
+  "A1001": 187.0
+ },
+ "declined": [],
+ "restocked": [
+  "A1003",
+  "A1001"
+ ],
+ "escalated": {
+  "A1006": "当日额度不足",
+  "A1002": "当日额度不足",
+  "A1007": "当日额度不足"
+ },
+ "notified": {
+  "A1004": [
+   "refunded"
+  ],
+  "A1003": [
+   "refunded"
+  ],
+  "A1001": [
+   "refunded"
+  ],
+  "A1005": [
+   "need_return"
+  ],
+  "A1006": [
+   "escalated"
+  ],
+  "A1002": [
+   "escalated"
+  ],
+  "A1007": [
+   "escalated"
+  ]
+ },
+ "inventory": {
+  "SKU-CUP": 5,
+  "SKU-LAMP": 2,
+  "SKU-CHAIR": 2,
+  "SKU-BAG": 6,
+  "SKU-MAT": 3,
+  "SKU-FAN": 5,
+  "SKU-SHELF": 2
+ }
+}

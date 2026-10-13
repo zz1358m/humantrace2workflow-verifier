@@ -104,7 +104,37 @@ def export(name: str, dest: Path) -> Path:
     v.pop("inherits", None)  # personal style layer is merged in, so the copy stands alone
     (dest / "verifier.yaml").write_text(yaml.safe_dump(v, allow_unicode=True, sort_keys=False), encoding="utf-8")
     shutil.copyfile(Path(verifier.__file__), dest / "verify.py")
+    if (d / "stages").is_dir():
+        shutil.copytree(d / "stages", dest / "stages")
+    (dest / "VERIFIER.md").write_text(verifier_prompt(v), encoding="utf-8")
     return dest
+
+
+def verifier_prompt(v: dict) -> str:
+    """The verifier as a prompt. Every session of a multi-session workflow gets this same text, so they
+    all work towards one definition of done."""
+    out = ["# 验收标准（本 workflow 的所有会话共用）", "",
+           "这是这个人判断“做对了”的标准。每个会话在动手前读一遍，交接前对照一遍；最后一个会话必须跑",
+           "`python skill/verify.py --input input --output output`，FAIL 的修掉重跑，TODO 的逐条自评。", ""]
+    names = {"objective": "客观正确性（不过就直接打回）", "process": "做事的顺序与前置条件（顺序错了，结果对也不算对）",
+             "style": "这个人跨任务的验收风格", "preference": "这个人在本任务上的偏好",
+             "report": "汇报风格与可读性（交付汇报要写成这个人习惯读的样子）"}
+    for layer in ("objective", "process", "style", "preference", "report"):
+        items = [i for i in v["items"] if i.get("layer") == layer]
+        if not items:
+            continue
+        out += [f"## {names[layer]}", ""]
+        for i in items:
+            how = f"脚本 `{i['check']}`" if i.get("how") == "check" else "评审判断：" + " ".join(str(i.get("rubric", "")).split())
+            out.append(f"- `{i['id']}`{'（硬性）' if i.get('hard') else ''} {i['claim']}\n  - {how}")
+        out.append("")
+    if v.get("policy"):
+        out += ["## 这个人怎么查（照着做）", ""] + [f"- {k}: {json.dumps(val, ensure_ascii=False)}" for k, val in v["policy"].items()] + [""]
+    return "\n".join(out)
+
+
+def stages(d: Path) -> list[Path]:
+    return sorted((d / "stages").glob("*.md")) if (d / "stages").is_dir() else []
 
 
 def install(name: str, to: str) -> Path:
@@ -126,14 +156,27 @@ def execute(name: str, input_dir: Path, run_dir: Path, cfg: dict) -> agent.Resul
         shutil.rmtree(run_dir / "input")
     shutil.copytree(input_dir, run_dir / "input")
     (run_dir / "output").mkdir(exist_ok=True)
-    return agent.run(f"execute-{name}", agent.render("execute"), run_dir, cfg)
+    st = stages(run_dir / "skill")
+    if not st:
+        return agent.run(f"execute-{name}", agent.render("execute"), run_dir, cfg)
+    # multi-session workflow: one agent session per stage, handing over through work/, all sharing VERIFIER.md
+    (run_dir / "work").mkdir(exist_ok=True)
+    shared = (run_dir / "skill" / "VERIFIER.md").read_text(encoding="utf-8")
+    res = None
+    for i, f in enumerate(st, 1):
+        res = agent.run(f"execute-{name}-s{i}", agent.render("execute_stage", k=i, n=len(st), stage_file=f"skill/stages/{f.name}",
+                                                           stage=f.read_text(encoding="utf-8"), verifier=shared,
+                                                           last="是" if i == len(st) else "否"), run_dir, cfg)
+        if (run_dir / "output" / "BLOCKED.md").exists():
+            break
+    return res
 
 
 def score(name: str, run_dir: Path, cfg: dict, judge: bool = True, file: str = "verifier.yaml") -> dict:
     d = skill_dir(name)
     v = verifier.load(d, file)
     judgments = None
-    items = [{"id": i["id"], "claim": i["claim"], "rubric": i.get("rubric", "")} for i in v["items"] if i.get("how") == "judge"]
+    items = [{"id": i["id"], "layer": i.get("layer"), "claim": i["claim"], "rubric": i.get("rubric", "")} for i in v["items"] if i.get("how") == "judge"]
     if judge and items:
         (run_dir / "items.json").write_text(json.dumps(items, ensure_ascii=False, indent=1), encoding="utf-8")
         (run_dir / "policy.json").write_text(json.dumps(v["policy"], ensure_ascii=False, indent=1), encoding="utf-8")

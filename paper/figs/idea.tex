@@ -1,0 +1,26 @@
+\begin{tikzpicture}[x=1cm,y=1cm]
+% ---------------- (a) one task, two people
+\node[lab] at (3.15,5.3) {\T{(a) One task, two people}{(a) 同一个任务，两个人}};
+\node[pill] (task) at (3.15,4.6) {\T{Task: write the weekly metrics report}{任务：写每周的指标周报}};
+\node[card=verc, text width=2.75cm, minimum height=1.25cm] (va) at (1.55,3.25) {\textbf{\T{A accepts if}{A 的验收标准}}\\ \T{every number equals the source and the file is named}{每个数字都与源文件一致，并写明数据来源}};
+\node[card=verc, text width=2.75cm, minimum height=1.25cm] (vb) at (4.75,3.25) {\textbf{\T{B accepts if}{B 的验收标准}}\\ \T{there is a short takeaway in a friendly tone}{有一段简短的结论，语气亲切}};
+\node[card=wfc, text width=2.75cm, minimum height=1.25cm] (wa) at (1.55,1.45) {\textbf{\T{best for A}{对 A 最优的做法}}\\ \T{fetch, compute, re-check each number, then write}{取数、计算、逐个核对，再动笔}};
+\node[card=wfc, text width=2.75cm, minimum height=1.25cm] (wb) at (4.75,1.45) {\textbf{\T{best for B}{对 B 最优的做法}}\\ \T{draft quickly, then polish the wording}{先快速起草，再打磨措辞}};
+\draw[->] (task) -- (va.north); \draw[->] (task) -- (vb.north);
+\draw[->, verc, thick] (va) -- (wa); \draw[->, verc, thick] (vb) -- (wb);
+\node[note, text width=6cm] at (3.15,0.25) {\T{no best workflow, only the best one\\ under a given person's verifier}{没有最优的 workflow，\\ 只有某个人的 verifier 之下的最优}};
+\draw[mainc!40] (6.45,0) -- (6.45,5.45);
+% ---------------- (b) where the standard shows
+\node[lab] at (11.5,5.3) {\T{(b) The standard shows beside the main line}{(b) 标准出现在主线之外}};
+\foreach \px/\ptxt/\pcol in {7.35/{\T{asks for\\a draft}{让 agent\\起草}}/mainc, 9.0/{\T{agent\\drafts}{agent\\起草}}/mainc,
+                      10.65/{\T{``numbers only,\\no praise''}{“只要数字，\\别夸”}}/offc, 12.3/{\T{``did you check\\the csv?''}{“你核对过\\csv 吗？”}}/offc,
+                      13.95/{\T{refuses the\\send action}{拒绝\\发送动作}}/offc, 15.6/{\T{``ok''}{“可以”}}/mainc}
+  \node[card=\pcol, align=center, text width=1.38cm, minimum height=0.9cm, inner sep=2pt] at (\px,4.1) {\ptxt};
+\draw[->, mainc] (6.6,4.78) -- (16.45,4.78) node[above left, font=\tiny, text=mainc] {\T{time}{时间}};
+\node[card=wfc, text width=3.7cm, align=center] (W) at (8.75,2.15) {\textbf{workflow}\T{: how it is done}{：怎么做}\\ \emph{\T{regenerated when models change}{模型换代后可以重新生成}}};
+\node[card=verc, text width=3.7cm, align=center] (V) at (13.9,2.15) {\textbf{verifier}\T{: what counts as done}{：怎样算做对}\\ \emph{\T{kept, and refined with use}{长期保留，越用越准}}};
+\foreach \px in {7.35,9.0,15.6} \draw[->, mainc!70] (\px,3.6) -- (W.north);
+\foreach \px in {10.65,12.3,13.95} \draw[->, offc, thick] (\px,3.6) -- (V.north);
+\draw[->, verc, thick] (V) -- node[above, font=\tiny, text=verc] {\T{objective}{目标函数}} (W);
+\node[note, text width=9.6cm] at (11.5,0.55) {\T{grey: main-line events say how the work goes. orange: corrections, checks and\\ refusals, which task mining discards as noise, say what the person will not let pass}{灰色：主线上的事件说明事情怎么做。橙色：纠正、核对与拒绝，\\ 也就是 task mining 当作噪声丢掉的部分，说明这个人不放过什么}};
+\end{tikzpicture}

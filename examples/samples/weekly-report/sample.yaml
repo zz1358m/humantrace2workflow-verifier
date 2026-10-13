@@ -1,0 +1,146 @@
+id: weekly-report
+persona: {name: 林舟, role: 增长分析师}
+purpose: |
+  每周一我要把上周的三项指标（注册、收入、流失率）整理成一份周报发给团队。
+  输入是本周和上周的指标 csv，产出是一份 markdown。我要的是能直接发出去的版本。
+
+rubric:
+  - {id: R1, claim: 产出恰好一个文件 weekly_<本周周次>.md}
+  - {id: R2, claim: 三项指标的数值逐字等于本周 csv 里的值}
+  - {id: R3, claim: 每项指标给出相对上周的环比，带正负号、保留一位小数，数值正确}
+  - {id: R4, claim: 环比绝对值超过 20% 的那一行在行首用 ⚠ 标出，没超过的不标}
+  - {id: R5, claim: 末尾有一行“数据来源：”，写出用到的 csv 文件名}
+
+# 预填的个人风格：先有这些，再据此生成下面的 records。对管线隐藏，只用来评 verifier。
+style:
+  - id: S1
+    statement: 报告里的每个数字都必须逐字来自源 csv，写完要对着源文件核一遍
+    probe: {file: weekly_W42.md, replace: ["56120", "51620"]}
+  - id: S2
+    statement: 只列数字，不写没有数字支撑的评价和总结
+    probe: {file: weekly_W42.md, append: "本周整体表现亮眼，各项指标稳步向好。"}
+  - id: S3
+    statement: 末尾必须写数据来源的文件名
+    probe: {file: weekly_W42.md, remove_line: 数据来源}
+  - id: S4
+    statement: 环比统一写成带正负号、一位小数的百分比
+    probe: {file: weekly_W42.md, replace: ["+8.5%", "8.49%"]}
+  - id: S5
+    statement: 环比波动超过 20% 的指标在行首加 ⚠，没超过的不加
+    probe: {file: weekly_W42.md, replace: ["- ⚠ 流失率", "- 流失率"]}
+  - id: S6
+    statement: 标题固定写“# 周报 <周次>”，不自己发挥
+    probe: {file: weekly_W42.md, replace: ["# 周报 W42", "# Weekly Growth Report (W42)"]}
+  - id: S7
+    statement: 周报不由 agent 发出，发之前本人要自己看一遍
+    probe: null
+
+task:
+  input:
+    metrics_W41.csv: "metric,value\nsignups,1410\nrevenue_usd,51730\nchurn_pct,1.8\n"
+    metrics_W42.csv: "metric,value\nsignups,1375\nrevenue_usd,56120\nchurn_pct,2.4\n"
+  reference_output:
+    weekly_W42.md: |
+      # 周报 W42
+
+      - 注册 1375（环比 -2.5%）
+      - 收入 $56120（环比 +8.5%）
+      - ⚠ 流失率 2.4%（环比 +33.3%）
+
+      数据来源：metrics_W42.csv、metrics_W41.csv
+
+workdir:
+  metrics_W39.csv: "metric,value\nsignups,1190\nrevenue_usd,46900\nchurn_pct,2.6\n"
+  metrics_W40.csv: "metric,value\nsignups,1284\nrevenue_usd,48210\nchurn_pct,2.1\n"
+  metrics_W41.csv: "metric,value\nsignups,1410\nrevenue_usd,51730\nchurn_pct,1.8\n"
+  weekly_W40.md: |
+    # 周报 W40
+
+    - 注册 1284（环比 +7.9%）
+    - 收入 $48210（环比 +2.8%）
+    - 流失率 2.1%（环比 -19.2%）
+
+    数据来源：metrics_W40.csv、metrics_W39.csv
+  weekly_W41_v1.md: |
+    # Weekly Report
+
+    本周表现不错，各项指标稳步增长，团队状态很好。
+
+    - 注册 1410，环比 9.79%
+    - 收入 $51370，环比 7.30%
+    - ⚠ 流失率 1.8%，环比 -14.29%
+  weekly_W41.md: |
+    # 周报 W41
+
+    - 注册 1410（环比 +9.8%）
+    - 收入 $51730（环比 +7.3%）
+    - 流失率 1.8%（环比 -14.3%）
+
+    数据来源：metrics_W41.csv、metrics_W40.csv
+
+records:
+  claude:
+    - session: w40draft
+      cwd: /home/linzhou/reports
+      turns:
+        - {at: "2026-02-23 09:12:00", user: "根据 metrics_W40.csv 和 metrics_W39.csv 帮我起草 W40 周报"}
+        - {at: "2026-02-23 09:12:50", assistant: "已起草 weekly_W40.md：本周各项指标表现亮眼，注册量大幅增长，收入稳中有升……", tools: [Read, Write]}
+        - {at: "2026-02-23 09:13:30", user: "不对，“表现亮眼”“稳中有升”这种话都删掉，我只要数字，一句评价都不要", from: [S2]}
+        - {at: "2026-02-23 09:14:10", assistant: "已删除评价性语句，只保留三项指标。", tools: [Edit]}
+        - {at: "2026-02-23 09:14:40", user: "收入这个数你核对过 csv 吗？我看着不像", from: [S1]}
+        - {at: "2026-02-23 09:15:20", assistant: "核对后发现收入应为 48210，之前写成了 48120，已更正。", tools: [Read, Edit]}
+        - {at: "2026-02-23 09:16:00", user: "环比别写 2.79%，统一写成 +2.8% 这种，带正负号一位小数", from: [S4]}
+        - {at: "2026-02-23 09:16:30", assistant: "已统一环比格式。", tools: [Edit]}
+        - {at: "2026-02-23 09:17:00", user: "最后加一行数据来源，把两个 csv 的文件名写上", from: [S3]}
+        - {at: "2026-02-23 09:17:30", assistant: "已添加“数据来源：metrics_W40.csv、metrics_W39.csv”。", tools: [Edit]}
+        - {at: "2026-02-23 09:17:50", user: "可以"}
+        - {at: "2026-02-23 09:18:20", deny: SendEmail, from: [S7]}
+        - {at: "2026-02-23 09:18:40", user: "别替我发，发之前我要自己再看一遍", from: [S7]}
+    - session: sqlhelp
+      cwd: /home/linzhou/analysis
+      turns:
+        - {at: "2026-02-25 14:02:00", user: "这个 SQL 为什么会重复计数？select count(*) from orders o join order_items i on o.id = i.order_id"}
+        - {at: "2026-02-25 14:02:40", assistant: "因为一对多的 join 会按 order_items 的行数展开，应使用 count(distinct o.id)。", tools: []}
+        - {at: "2026-02-25 14:03:10", user: "好"}
+  codex:
+    - session: w41draft
+      cwd: /home/linzhou/reports
+      turns:
+        - {at: "2026-03-02 09:05:00", user: "起草 W41 周报，csv 在当前目录"}
+        - {at: "2026-03-02 09:06:10", assistant: "已写入 report.md，标题 Weekly Report，并对流失率做了 ⚠ 标注。", tools: [shell, apply_patch]}
+        - {at: "2026-03-02 09:06:50", user: "标题就写“# 周报 W41”，文件名 weekly_W41.md，别自己发挥", from: [S6]}
+        - {at: "2026-03-02 09:07:30", assistant: "已改名并修正标题。", tools: [shell]}
+        - {at: "2026-03-02 09:08:00", user: "流失率才 -14.3%，没超过 20% 别标 ⚠，超过才标", from: [S5]}
+        - {at: "2026-03-02 09:08:40", assistant: "已去掉 ⚠。", tools: [apply_patch]}
+        - {at: "2026-03-02 09:09:10", user: "收入你写的 51370，csv 里是 51730，每个数都对一遍再给我", from: [S1]}
+        - {at: "2026-03-02 09:10:00", assistant: "已逐项核对并更正。", tools: [shell, apply_patch]}
+        - {at: "2026-03-02 09:10:30", user: "数据来源那行呢", from: [S3]}
+        - {at: "2026-03-02 09:11:00", assistant: "已补上数据来源行。", tools: [apply_patch]}
+        - {at: "2026-03-02 09:11:20", user: "行"}
+  shell:
+    - {at: "2026-02-23 09:20:11", cmd: "grep revenue metrics_W40.csv", from: [S1]}
+    - {at: "2026-02-23 09:20:40", cmd: "python3 -c \"print(f'{(48210-46900)/46900*100:+.1f}%')\"", from: [S4]}
+    - {at: "2026-02-23 09:21:30", cmd: "cat weekly_W40.md"}
+    - {at: "2026-02-24 10:02:00", cmd: "git status"}
+    - {at: "2026-02-24 10:03:12", cmd: "psql -h warehouse -c 'select count(*) from events_daily'"}
+    - {at: "2026-03-02 09:12:05", cmd: "grep -n 51730 weekly_W41.md metrics_W41.csv", from: [S1]}
+    - {at: "2026-03-02 09:12:40", cmd: "python3 -c \"print(f'{(1.8-2.1)/2.1*100:+.1f}%')\"", from: [S4, S5]}
+    - {at: "2026-03-02 09:13:10", cmd: "tail -n 1 weekly_W41.md", from: [S3]}
+    - {at: "2026-03-02 11:40:00", cmd: "ls ~/Downloads"}
+  browser:
+    - {at: "2026-02-23 09:02:00", url: "https://metabase.example.com/dashboard/12", title: "增长看板 · Metabase"}
+    - {at: "2026-02-23 09:19:30", url: "https://metabase.example.com/question/88", title: "周收入明细 · Metabase", from: [S1]}
+    - {at: "2026-02-26 16:10:00", url: "https://docs.example.com/okr-2026q1", title: "2026 Q1 OKR"}
+    - {at: "2026-03-02 09:01:00", url: "https://metabase.example.com/dashboard/12", title: "增长看板 · Metabase"}
+    - {at: "2026-03-02 12:30:00", url: "https://news.example.com/tech", title: "科技新闻"}
+  chat:
+    - {at: "2026-02-16 10:20:00", peer: 增长组, sender: 何苗, text: "上周周报里的收入和看板对不上，是不是抄错了？"}
+    - {at: "2026-02-16 10:24:00", peer: 增长组, sender: 林舟, text: "抄错了一位，已更正重发。以后每个数我都对着 csv 核一遍再发", from: [S1]}
+    - {at: "2026-02-16 10:30:00", peer: 增长组, sender: 何苗, text: "另外这个数是哪张表导出来的？"}
+    - {at: "2026-02-16 10:31:00", peer: 增长组, sender: 林舟, text: "以后周报末尾我都写上数据来源的文件名，省得再问", from: [S3]}
+    - {at: "2026-02-20 15:00:00", peer: 增长组, sender: 老秦, text: "波动大的指标能不能标一下，我每次都要自己找"}
+    - {at: "2026-02-20 15:03:00", peer: 增长组, sender: 林舟, text: "好，环比超过 20% 的我在行首加个 ⚠，其他不动", from: [S5]}
+    - {at: "2026-02-27 18:10:00", peer: 增长组, sender: 何苗, text: "周五聚餐去哪"}
+    - {at: "2026-02-27 18:12:00", peer: 增长组, sender: 林舟, text: "楼下那家川菜吧"}
+    - {at: "2026-03-02 09:30:00", peer: 老秦, sender: 老秦, text: "周报能不能加点分析结论"}
+    - {at: "2026-03-02 09:33:00", peer: 老秦, sender: 林舟, text: "周报我只放数字，结论放周会上说，免得数字和判断混在一起", from: [S2]}

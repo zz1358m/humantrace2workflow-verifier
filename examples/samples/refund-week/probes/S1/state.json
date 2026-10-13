@@ -1,0 +1,44 @@
+{
+ "day": "2026-06-22",
+ "cap": 1000.0,
+ "refunded_today": 985.0,
+ "declined_today": [],
+ "refunds": {
+  "W101": 187.0,
+  "W107": 210.0,
+  "W106": 329.0,
+  "W103": 259.0
+ },
+ "restocked": [
+  "W101",
+  "W107",
+  "W106"
+ ],
+ "escalated": {
+  "W102": "超过500需主管审批",
+  "W105": "当日额度不足"
+ },
+ "notified": {
+  "W101": [
+   "refunded"
+  ],
+  "W107": [
+   "refunded"
+  ],
+  "W106": [
+   "refunded"
+  ],
+  "W102": [
+   "escalated"
+  ],
+  "W103": [
+   "refunded"
+  ],
+  "W104": [
+   "need_return"
+  ],
+  "W105": [
+   "escalated"
+  ]
+ }
+}

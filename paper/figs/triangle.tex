@@ -1,0 +1,14 @@
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[card=mainc, align=center, text width=3.6cm, minimum height=1.2cm, font=\small] (H) at (8.25,5.7) {\textbf{\T{human}{人}}\\ {\scriptsize \T{purpose, standards, habits}{目的、标准、习惯}}};
+\node[card=verc, align=center, text width=3.6cm, minimum height=1.2cm, font=\small] (V) at (3.7,1.45) {\textbf{verifier}\\ {\scriptsize \T{what counts as done, for this person}{对这个人来说，怎样才算做对}}};
+\node[card=wfc, align=center, text width=3.6cm, minimum height=1.2cm, font=\small] (W) at (12.8,1.45) {\textbf{workflow}\\ {\scriptsize \T{a multi-session agent procedure}{由多个 agent 会话组成的流程}}};
+\draw[->, line width=1.6pt, offc] (H) -- (V);
+\draw[->, line width=1.6pt, verc] (V) -- (W);
+\draw[->, line width=1.6pt, wfc] (W) -- (H);
+\node[align=right, font=\scriptsize, text width=4.6cm, text=offc] at (2.95,4.05) {\textbf{\T{guides}{指导}}\\ \T{corrections, refusals and re-checks in their records; ticks the rubric; approves every change}{记录里的纠正、拒绝与复核；勾选 rubric；每一次改动都由本人批准}};
+\node[align=center, font=\scriptsize, text width=7cm, text=verc] at (8.25,0.55) {\textbf{\T{optimises and accelerates}{优化并加速}}\\ \T{the objective the workflow is searched under, and one definition of done shared by all of its sessions}{既是搜索 workflow 时的目标函数，也是所有会话共用的同一份“做对了”的定义}};
+\node[align=left, font=\scriptsize, text width=4.6cm, text=wfc] at (13.55,4.05) {\textbf{\T{boosts}{提效}}\\ \T{does the recurring work and reports back in the form this person reads fastest}{接手重复性的工作，并按这个人读得最快的方式汇报}};
+\node[note, text width=4.4cm] at (8.25,2.75) {\T{each turn leaves more records,\\ and a sharper verifier}{每转一圈，记录更多，\\ verifier 更准}};
+\node[draw=hidc, dashed, rounded corners=3pt, align=center, font=\tiny, text=hidc, text width=3.5cm, inner sep=3pt] at (2.2,5.75) {\T{the only step that reads raw personal records: keep it on a local, open-weight model}{唯一会读到个人原始记录的一步：放在本地的开源模型上做}};
+\draw[hidc, dashed] (4.1,5.6) -- (6.8,4.42);
+\end{tikzpicture}
