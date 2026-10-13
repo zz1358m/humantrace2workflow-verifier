@@ -1,0 +1,17 @@
+\begin{tikzpicture}[x=1cm,y=1cm]
+\foreach \lk/\lx/\ltitle/\lsup/\lcol in {
+   1/1.55/{\T{coding}{写代码}}/{\T{writes the code,\\checks the result}{自己写代码，\\自己检查结果}}/mainc,
+   2/4.85/{coding agent}/{\T{states the task,\\checks the result}{说明任务，\\检查结果}}/mainc,
+   3/8.15/{\T{coding multi-agent\\workflow}{coding 多 agent\\workflow}}/{\T{arranges the sessions,\\checks the result}{编排各个会话，\\检查结果}}/mainc,
+   4/11.45/{\T{verifier-optimised\\coding multi-agent\\workflow}{由 verifier 优化的\\coding 多 agent\\workflow}}/{\T{a standard, learned\\from their own records}{一份标准，\\从本人的记录里学出来}}/verc,
+   5/14.85/{\T{automated, recursively\\self-improving\\working group}{自动化、递归自我\\改进的\\working group}}/{\T{pairs from many, diverse\\people; each approves\\changes to their standard}{来自许多不同的人的\\(workflow, verifier)；\\各自批准自己标准的改动}}/mainc}
+{
+  \node[card=\lcol, align=center, text width=2.75cm, minimum height=1.3cm] (L\lk) at (\lx,1.7) {\textbf{\ltitle}};
+  \node[font=\tiny, text=mainc, align=center] at (\lx,0.45) {\lsup};
+}
+\foreach \lk [evaluate=\lk as \lnext using int(\lk+1)] in {1,...,4} \draw[->, thick] (L\lk.east) -- (L\lnext.west);
+\node[draw=verc, very thick, rounded corners=3pt, fit=(L4), inner sep=2.5pt] {};
+\node[font=\scriptsize\bfseries, text=verc] at (11.45,2.75) {\T{this paper}{本文}};
+\node[font=\tiny\itshape, text=mainc] at (14.85,2.75) {\T{next stage}{下一阶段}};
+\node[font=\tiny\itshape, text=mainc] at (8.2,-0.35) {\T{second row: what people still have to supply at each stage}{第二行：每个阶段仍然需要人来提供的东西}};
+\end{tikzpicture}

@@ -10,22 +10,8 @@
 \usepackage{caption}
 \usepackage{tikz}
 \usepackage[colorlinks=true,linkcolor=black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
-\usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds}
-
-\definecolor{mainc}{HTML}{6B7280}   % mainline behaviour
-\definecolor{offc}{HTML}{C2410C}    % off-mainline behaviour
-\definecolor{wfc}{HTML}{15803D}     % workflow
-\definecolor{verc}{HTML}{1D4ED8}    % verifier
-\definecolor{hidc}{HTML}{9F1239}    % hidden from the system
-\tikzset{
-  >={Stealth[length=4pt,width=4pt]},
-  card/.style={draw=#1, fill=#1!6, rounded corners=2pt, align=left, inner sep=4pt, font={\scriptsize\hyphenpenalty 10000 \exhyphenpenalty 10000 \relax}},
-  card/.default=mainc,
-  pill/.style={draw=#1, fill=#1!10, rounded corners=6pt, align=center, inner sep=3pt, font=\scriptsize},
-  pill/.default=mainc,
-  lab/.style={font=\scriptsize\bfseries, text=#1}, lab/.default=black,
-  note/.style={font=\scriptsize\itshape, text=mainc, align=center},
-}
+\newcommand{\T}[2]{#1}  % figure text: \T{English}{Chinese}
+\input{figs/style}
 \newcommand{\sys}{\textsc{ht2wv}}
 \newcommand{\todo}[1]{\textcolor{red}{[#1]}}
 \setlist{nosep,leftmargin=1.4em}
@@ -55,7 +41,10 @@ which a pre-filled personal style conditions the records and is then hidden: the
 the person's rubric its workflow satisfies and on how many hidden style items its verifier catches, including a
 seven-day, stateful sample in which doing the right things in the wrong order changes the outcome. In first runs,
 single-step tasks are saturated at the first attempt, while half of the learned verifiers reject the output the
-person would have kept: coverage without acceptance of the reference is not a verifier.
+person would have kept: coverage without acceptance of the reference is not a verifier. Only the step that
+distils a verifier from a person reads raw personal records; we therefore see the sample format as training
+material for locally hosted open-weight models, and the pairs of many different people as the members of a
+diverse, self-improving working group, the stage after this one.
 \end{abstract}
 
 % ---------------------------------------------------------------------------------------------------------------
@@ -78,6 +67,24 @@ is wrong for the other (Figure~\ref{fig:idea}a). We take this literally:
 (workflow, verifier), and the verifier belongs to a person.}
 \end{quote}
 
+\paragraph{Why build it: a triangle, not a pipeline.} Three things are involved, and each acts on the next
+(Figure~\ref{fig:triangle}). The \emph{human guides the verifier}: what they correct, refuse and re-check, and
+what they tick on a rubric, is where the standard comes from, and no change to it takes effect without them. The
+\emph{verifier optimises and accelerates the workflow}: it is the objective the workflow is searched under, and,
+attached to every agent session as the same prompt, it lets a long procedure be split across sessions without the
+sessions drifting apart on what done means. The \emph{workflow boosts the human}: it takes over the recurring
+work and reports back in the form that person reads fastest. Without the verifier the human has to guide the
+workflow directly, on every run; that is prompting, and it does not compound. With it, the person's effort goes
+into the standard once, and every further turn of the loop leaves more records from which to sharpen it.
+
+\begin{figure}[t]
+\centering
+\input{figs/triangle}
+\caption{Why the system exists. The human guides the verifier, the verifier optimises and accelerates the workflow,
+and the workflow gives the human their time back. Only the first edge touches raw personal records.}
+\label{fig:triangle}
+\end{figure}
+
 Three consequences follow. Personalisation is part of the problem statement, not a feature. The verifier is the
 durable asset: when a stronger model arrives the workflow can be regenerated, possibly as a completely different
 procedure, while what the person accepts changes slowly. And optimisation becomes well defined: hold the
@@ -92,31 +99,7 @@ on the machine; nothing has to be recorded.
 
 \begin{figure}[t]
 \centering
-\begin{tikzpicture}[x=1cm,y=1cm]
-% ---------------- (a) one task, two people
-\node[lab] at (3.15,5.3) {(a) One task, two people};
-\node[pill] (task) at (3.15,4.6) {Task: write the weekly metrics report};
-\node[card=verc, text width=2.75cm, minimum height=1.25cm] (va) at (1.55,3.25) {\textbf{A accepts if}\\ every number equals the source and the file is named};
-\node[card=verc, text width=2.75cm, minimum height=1.25cm] (vb) at (4.75,3.25) {\textbf{B accepts if}\\ there is a short takeaway in a friendly tone};
-\node[card=wfc, text width=2.75cm, minimum height=1.25cm] (wa) at (1.55,1.45) {\textbf{best for A}\\ fetch, compute, re-check each number, then write};
-\node[card=wfc, text width=2.75cm, minimum height=1.25cm] (wb) at (4.75,1.45) {\textbf{best for B}\\ draft quickly, then polish the wording};
-\draw[->] (task) -- (va.north); \draw[->] (task) -- (vb.north);
-\draw[->, verc, thick] (va) -- (wa); \draw[->, verc, thick] (vb) -- (wb);
-\node[note, text width=6cm] at (3.15,0.25) {no best workflow, only the best one\\ under a given person's verifier};
-\draw[mainc!40] (6.45,0) -- (6.45,5.45);
-% ---------------- (b) where the standard shows
-\node[lab] at (11.5,5.3) {(b) The standard shows beside the main line};
-\foreach \px/\ptxt/\pcol in {7.35/{asks for\\a draft}/mainc, 9.0/{agent\\drafts}/mainc, 10.65/{``numbers only,\\no praise''}/offc,
-                      12.3/{``did you check\\the csv?''}/offc, 13.95/{refuses the\\send action}/offc, 15.6/{``ok''}/mainc}
-  \node[card=\pcol, align=center, text width=1.38cm, minimum height=0.9cm, inner sep=2pt] at (\px,4.1) {\ptxt};
-\draw[->, mainc] (6.6,4.78) -- (16.45,4.78) node[above left, font=\tiny, text=mainc] {time};
-\node[card=wfc, text width=3.7cm, align=center] (W) at (8.75,2.15) {\textbf{workflow}: how it is done\\ \emph{regenerated when models change}};
-\node[card=verc, text width=3.7cm, align=center] (V) at (13.9,2.15) {\textbf{verifier}: what counts as done\\ \emph{kept, and refined with use}};
-\foreach \px in {7.35,9.0,15.6} \draw[->, mainc!70] (\px,3.6) -- (W.north);
-\foreach \px in {10.65,12.3,13.95} \draw[->, offc, thick] (\px,3.6) -- (V.north);
-\draw[->, verc, thick] (V) -- node[above, font=\tiny, text=verc] {objective} (W);
-\node[note, text width=9.6cm] at (11.5,0.55) {grey: main-line events say how the work goes. orange: corrections, checks and\\ refusals, which task mining discards as noise, say what the person will not let pass};
-\end{tikzpicture}
+\input{figs/idea}
 \caption{The idea. (a) The acceptance standard differs between people, and it decides which workflow is best.
 (b) Evidence for that standard lies off the main line of the task, and is densest in the person's existing
 conversations with coding agents.}
@@ -128,42 +111,45 @@ conversations with coding agents.}
 where one agent carries a task from start to finish; the \emph{coding multi-agent workflow}, where several agent
 sessions are arranged into a procedure; the \emph{verifier-optimised coding multi-agent workflow}, where that
 arrangement is no longer made by hand but searched for under an explicit acceptance standard; and the
-\emph{automated, recursively self-improving working group}, a standing group of agents that maintains and improves
-its own workflows over time. Each stage takes away one thing the person had to supply: the keystrokes, the
+\emph{automated, recursively self-improving working group}, a standing group that maintains and improves its own
+workflows over time. Each stage takes away one thing the person had to supply: the keystrokes, the
 step-by-step supervision, the arrangement of the steps, and finally the upkeep of the arrangement. This paper
 implements the fourth stage. The object that makes it possible is the same one that would make the fifth safe to
 attempt: a verifier that is explicit, executable and owned by the person, so that what is being improved (the
 workflow) and what judges it (the verifier) are kept apart, and a group that rewrites its own procedures still
 answers to a standard it cannot rewrite on its own.
 
+\paragraph{The next stage is about diversity.} One person's pair makes one worker in that person's image. The
+working group we are aiming at is assembled from pairs distilled from \emph{many, different} people: the analyst
+who will not send an unchecked number, the engineer who will not merge a fix without a regression test, the
+operator who orders a queue by who asked first. Their workflows give the group a range of procedures; their
+verifiers give it a range of standards that disagree in useful ways, so that work produced under one is reviewed
+under another. Diversity in such a group does not have to be prompted into existence with personas: it is
+inherited from the people the pairs came from, and it stays measurable, because every member's standard is an
+explicit, executable object.
+
+\paragraph{What has to stay private.} Of the three edges in Figure~\ref{fig:triangle} only one reads raw personal
+records: distilling the verifier from the human. Executing a workflow sees the task at hand, and optimising it
+sees the verifier, which is a short, reviewable text; neither needs the person's history. The privacy requirement
+therefore falls on a single, well-delimited step, and that step is the one to run on a model the person hosts.
+Samples of the kind introduced below, records paired with the style that produced them, are exactly the
+supervision such a model needs, so the data set we are collecting doubles as training material for open-weight
+models of a size that runs locally (the Qwen 27B and 35B-A3B class); stronger hosted models can then be used for
+execution and optimisation, where nothing private is exposed.
+
 \begin{figure}[t]
 \centering
-\begin{tikzpicture}[x=1cm,y=1cm]
-\foreach \lk/\lx/\ltitle/\lsup/\lcol in {
-   1/1.55/{coding}/{writes the code,\\checks the result}/mainc,
-   2/4.85/{coding agent}/{states the task,\\checks the result}/mainc,
-   3/8.15/{coding multi-agent\\workflow}/{arranges the sessions,\\checks the result}/mainc,
-   4/11.45/{verifier-optimised\\coding multi-agent\\workflow}/{a standard, learned\\from their own records}/verc,
-   5/14.85/{automated, recursively\\self-improving\\working group}/{approves changes\\to the standard}/mainc}
-{
-  \node[card=\lcol, align=center, text width=2.75cm, minimum height=1.3cm] (L\lk) at (\lx,1.7) {\textbf{\ltitle}};
-  \node[font=\tiny, text=mainc, align=center] at (\lx,0.45) {\lsup};
-}
-\foreach \lk [evaluate=\lk as \lnext using int(\lk+1)] in {1,...,4} \draw[->, thick] (L\lk.east) -- (L\lnext.west);
-\node[draw=verc, very thick, rounded corners=3pt, fit=(L4), inner sep=2.5pt] {};
-\node[font=\scriptsize\bfseries, text=verc] at (11.45,2.75) {this paper};
-\node[font=\tiny\itshape, text=mainc] at (14.85,2.75) {outlook};
-\node[font=\tiny\itshape, text=mainc, anchor=east] at (0.05,0.45) {};
-\node[font=\tiny\itshape, text=mainc] at (8.2,-0.15) {second row: what the person still has to supply at each stage};
-\end{tikzpicture}
+\input{figs/ladder}
 \caption{The trajectory we have in mind. Each stage removes something the person had to supply. This work is the
-fourth stage: the multi-session workflow is optimised against a verifier learned from the person's records.}
+fourth stage: the multi-session workflow is optimised against a verifier learned from the person's records. The
+fifth assembles pairs distilled from many different people into one group.}
 \label{fig:ladder}
 \end{figure}
 
 \paragraph{Contributions.}
 \begin{itemize}
-\item A formulation of personal automation as learning a pair (workflow, verifier), with a verifier in five layers
+\item A formulation of personal automation as a human--verifier--workflow triangle in which the object to learn is
+      a pair (workflow, verifier), with a verifier in five layers
       (objective, process, style, preference, report) plus a checking policy (\S\ref{sec:method}).
 \item \sys{}, an open implementation that reads access records a person already has under per-source consent,
       calls no model API itself, and delegates all reading and writing to headless sessions of an existing coding
@@ -229,40 +215,7 @@ rejection is told to the buyer; the week summary follows the same reporting rule
 
 \begin{figure}[t]
 \centering
-\begin{tikzpicture}[x=1cm,y=1cm]
-% visible / hidden
-\node[card=mainc, text width=7.4cm] (vis) at (4.0,7.75) {\textbf{Given to the system}\\
-purpose: ``handle each day's refunds as I would, then report to me''\\
-rubric R1--R7: the items she will tick\\
-records: agent logs, shell history, chats, browsing};
-\node[card=hidc, text width=7.4cm] (hid) at (12.35,7.75) {\textbf{Withheld: the pre-filled style the records were written from}\\
-6 in-day ordering rules \hfill S1--S5, S10\\
-5 reporting-style rules \hfill S6--S9, S11\\
-6 cross-day rules \hfill L1--L6};
-% days
-\foreach \dk/\dn/\dtxt in {0/Mon/{8 requests\\cap reached\\W107 waits},
-                      1/Tue/{W102 approved\\W107 goes first\\2 orders wait},
-                      2/Wed/{W104 returned\\W101 repeats\\W111 over 500},
-                      3/Thu/{W111 rejected\\cap reached\\W116 waits},
-                      4/Fri/{W116 goes first\\W118 over 500\\W121 waits},
-                      5/Sat/{W118 approved\\W113 returned\\W121 waits},
-                      6/Sun/{W121 goes first\\W125 over 500\\\textbf{week report}}}
-  \node[card=mainc, text width=1.92cm, minimum height=1.55cm, inner sep=3pt] (day\dk) at (\dk*2.345+1.14,5.45) {\textbf{\dn}\\[1pt] \dtxt};
-\foreach \dk [evaluate=\dk as \dnext using int(\dk+1)] in {0,...,5}
-  \draw[->, offc, very thick] (day\dk.east) -- (day\dnext.west);
-\node[note, text=offc, text width=15.5cm] at (8.18,4.3) {arrows: the back-office state carries over. the cap resets every day; whatever was left undone is still there tomorrow};
-% order matters
-\node[lab] at (8.18,3.65) {Why order matters: the same Monday, cap \textyen 1000};
-\node[card=wfc, text width=7.4cm] (good) at (4.0,2.2) {\textbf{her order: oldest request first}\\
-08:50 W103 \textyen 259 \quad 09:02 W101 \textyen 187\\
-09:10 W105 \textyen 150 \quad 09:15 W106 \textyen 329 \quad $\Rightarrow$ \textyen 925 refunded\\
-09:50 W107 \textyen 210 no longer fits: \emph{the latest request waits}};
-\node[card=offc, text width=7.4cm] (bad) at (12.35,2.2) {\textbf{sheet order: rows as they come}\\
-W101 \textyen 187 \quad W107 \textyen 210\\
-W106 \textyen 329 \quad W103 \textyen 259 \quad $\Rightarrow$ \textyen 985 refunded\\
-W105 \textyen 150 no longer fits: \emph{09:10 loses to 09:50}};
-\node[note, text width=15.5cm] at (8.18,0.85) {every single action is valid in both columns. only the order differs, and the back office ends in a different state};
-\end{tikzpicture}
+\input{figs/week}
 \caption{The seven-day sample. Top: what the system sees and what is withheld. Middle: the week; orders that could
 not be paid, approvals and returned parcels connect the days. Bottom: the same Monday handled in two orders.}
 \label{fig:week}
@@ -283,36 +236,7 @@ and report remain mutually consistent: a verifier can only catch a probe by know
 \begin{figure}[t]
 \centering
 
-\resizebox{\textwidth}{!}{\begin{tikzpicture}[x=1cm,y=1cm]
-% row 1: pipeline
-\node[card=mainc, text width=2.45cm, align=center] (rec) at (1.4,6.3) {\textbf{access records}\\ agent logs, shell and browser history, chats\\ \emph{per-source consent}};
-\node[card=mainc, text width=2.45cm, align=center] (cmp) at (4.85,6.3) {\textbf{compile}, no model\\ timeline plus off-mainline signal candidates};
-\node[card=mainc, text width=2.45cm, align=center] (dst) at (8.3,6.3) {\textbf{distil}, agent sessions\\ A: profile and tasks\\ B: one skill per task};
-\node[card=wfc, text width=4.2cm, align=center] (wf) at (13.1,7.05) {\textbf{workflow}\\ stage prompts 01, 02, 03};
-\node[card=verc, text width=4.2cm, align=center] (vf) at (13.1,5.55) {\textbf{verifier}\\ objective, process, style,\\ preference, report $+$ policy};
-\draw[->] (rec) -- (cmp); \draw[->] (cmp) -- (dst);
-\draw[->] (dst.east) -- (wf.west); \draw[->] (dst.east) -- (vf.west);
-\node[font=\tiny, text=mainc, align=center] at (10.35,6.3) {must\\pass lint};
-% row 2: execution
-\node[lab] at (1.4,3.2) {execute $\rightarrow$};
-\foreach \sk/\sx in {1/3.9,2/6.9,3/9.9}
-  \node[card=wfc, text width=2.2cm, align=center] (s\sk) at (\sx,3.2) {\textbf{session \sk}\\ stage 0\sk{} prompt\\ \textcolor{verc}{$+$ verifier prompt}};
-\node[card=mainc, text width=2.2cm, align=center] (out) at (13.1,3.2) {\textbf{output}\\ and a report\\ to the person};
-\draw[->] (s1) -- node[above, font=\tiny] {files} (s2); \draw[->] (s2) -- node[above, font=\tiny] {files} (s3); \draw[->] (s3) -- (out);
-\draw[verc, thick] (vf.south) -- (13.1,4.5) -- (3.9,4.5);
-\foreach \sx in {3.9,6.9,9.9} \draw[->, verc, thick] (\sx,4.5) -- (\sx,3.78);
-\node[font=\tiny, text=verc] at (8.0,4.68) {one shared definition of done, attached to every session};
-% row 3: signals
-\node[card=mainc, text width=2.6cm, align=center] (fb) at (13.1,1.1) {she ticks the \textbf{rubric}\\ (stated, visible)};
-\node[card=mainc, text width=3.2cm, align=center] (it) at (8.0,1.1) {\textbf{iterate} session\\ repair stages; add verifier\\ items backed by evidence};
-\node[card=hidc, text width=1.55cm, align=center] (pr) at (15.75,3.2) {\textbf{hidden style}\\ probes give coverage};
-\draw[->] (out) -- (fb);
-\draw[->] (fb) -- (it);
-\draw[->] (it.west) -- (-0.3,1.1) -- (-0.3,8.0) -- (13.1,8.0) -- (wf.north);
-\node[font=\tiny, text=mainc, rotate=90] at (-0.5,4.5) {revised skill};
-\draw[->, hidc, dashed, thick] (pr.north) -- (15.75,5.55) -- (vf.east);
-\node[font=\tiny, text=hidc, align=center] at (15.75,2.2) {evaluation only,\\never fed back};
-\end{tikzpicture}}
+\resizebox{\textwidth}{!}{\input{figs/method}}
 \caption{The pipeline. Records are collected under consent and compressed without a model; agent sessions distil
 a profile and, per task, a workflow and a verifier; the workflow runs as several sessions that all receive the
 verifier as the same prompt. Rubric failures drive revisions. Hidden style items are used only for scoring.}
@@ -461,8 +385,9 @@ against the papers before submission.}
 % ---------------------------------------------------------------------------------------------------------------
 \section{Limitations and next steps}
 
-The central claim, that a workflow optimised under another person's verifier is accepted less often, is not yet
-tested; it needs two people (or two styles over the same task) and a cross-evaluation. The synthetic records are
+Neither the diverse working group nor local distillation exists yet: no open-weight model has been trained or
+evaluated on the samples, and all sessions reported here ran on a hosted model. The central claim, that a
+workflow optimised under another person's verifier is accepted less often, is not yet tested; it needs two people (or two styles over the same task) and a cross-evaluation. The synthetic records are
 kinder than real ones: the person states most standards outright, and little contradicts them. Harder samples
 should include standards that are only ever shown, never said; standards that change over time; and colleagues
 whose different habits appear in the same chats (the refund samples contain a few). Isolation of held-out material

@@ -1,30 +1,82 @@
 # HumanTrace2Workflow&Verifier (ht2wv)
 
-从一个人**已有的访问记录**里编译出 **(workflow, verifier)**：怎么做，以及这个人认为怎样算做对。
-产出是标准的 Agent Skill，自带可执行的个人验收，能装进 Claude Code 或 Codex。
+**English** | [中文](README.zh-CN.md)
 
-访问记录指的是电脑上本来就有的东西，不需要额外录制：
+Compile a person's **(workflow, verifier)** from the access records they already have: how a recurring task is
+done, and what this person accepts as done. The output is a standard Agent Skill with an executable, personal
+acceptance test, usable in Claude Code or Codex.
 
-- coding agent 对话日志（Claude Code、Codex，本机和服务器上的）
-- shell 命令历史（本机和服务器）
-- 浏览器历史
-- 导出的聊天记录（微信等）
-- 最近打开的文件、文档改动时间、git 提交
+Paper draft: [English PDF](paper/main.pdf) · [中文 PDF](paper/main_zh.pdf) · design notes (Chinese): [framework](docs/framework.md), [related work](docs/related-work.md)
 
-其中 agent 对话是最密的验收信号：每一次打回、追问“你核对过吗”、中断、拒绝工具调用，都是这个人用自己的话说出来的验收标准。
-录屏和录屏视频是可选的补充来源。
+## Core ideas
 
-- 提案：[HumanTrace2Workflow-proposal.pdf](HumanTrace2Workflow-proposal.pdf)
-- 相关工作：[docs/related-work.md](docs/related-work.md)
-- 合成样本与评测：见下文“合成样本”
-- 框架设计：[docs/framework.md](docs/framework.md)
+### 1. A triangle: human, verifier, workflow
 
-本项目自己不调模型 API。它先让用户逐项授权，确定性地采集和压缩这些记录，然后在用户已有的 Claude Code / Codex 里开无头会话去读、去写 skill，
-再用确定性的检查卡住会话的产出。
+![triangle](docs/img/triangle.en.png)
 
-## 安装
+- **The human guides the verifier.** What they correct, refuse and re-check, and what they tick on a rubric, is
+  where the standard comes from. No change to it takes effect without them.
+- **The verifier optimises and accelerates the workflow.** It is the objective the workflow is searched under,
+  and it is attached to every agent session as the same prompt, so a long procedure can be split across sessions
+  without the sessions drifting apart on what "done" means.
+- **The workflow boosts the human.** It takes over the recurring work and reports back in the form that person
+  reads fastest.
 
-需要 Python 3.10+；蒸馏那一步还需要本机已登录的 Claude Code 或 Codex CLI。
+Without the verifier, the human has to guide the workflow directly on every run. That is prompting, and it does
+not compound. With it, the person's effort goes into the standard once, and each turn of the loop leaves more
+records from which to sharpen it.
+
+### 2. The verifier is personal, and its evidence is off the main line
+
+![idea](docs/img/idea.en.png)
+
+There is no best workflow, only the best one under a given person's verifier. The evidence for that verifier is
+in what task mining throws away as noise: corrections, interruptions, re-checks, refused actions. Most of it is
+already written down in the logs of the coding agents a person uses, so nothing has to be recorded.
+
+### 3. Where this sits
+
+![ladder](docs/img/ladder.en.png)
+
+coding → coding agent → coding multi-agent workflow → **verifier-optimized coding multi-agent workflow** →
+automated (recursive self-improving) working group. This project implements the fourth stage.
+
+**The next stage is about diversity.** One person's pair makes one worker in that person's image. The working
+group we are aiming at is assembled from pairs distilled from many different people. Their workflows give the
+group a range of procedures; their verifiers give it a range of standards that disagree in useful ways, so work
+produced under one is reviewed under another. That diversity is inherited from real people rather than prompted
+into existence with personas, and it stays measurable because every member's standard is an explicit, executable
+object.
+
+### 4. Only one step needs privacy
+
+Of the three edges of the triangle, only *human → verifier* reads raw personal records. Executing a workflow sees
+the task at hand; optimising it sees the verifier, which is a short, reviewable text. So the privacy requirement
+falls on one step, and that step should run on a model the person hosts. The samples in this repository (records
+paired with the style that produced them) are the supervision such a model needs, so the data set doubles as
+training material for open-weight models that run locally (the Qwen 27B / 35B-A3B class). **This is the plan, not
+a result: no open-weight model has been trained or evaluated yet, and every session reported below ran on a hosted
+model.**
+
+## What it reads
+
+Access records are things already on the machine:
+
+- coding-agent conversation logs (Claude Code, Codex; local and on servers)
+- shell history (local and on servers)
+- browser history
+- exported chat logs
+- recently opened files, document modification times, git commits
+
+Screen recording and screen-video import are optional extras. Every source needs explicit consent first.
+
+ht2wv calls no model API itself. It collects and compresses the records deterministically, then opens headless
+sessions in the Claude Code / Codex you already have to do the reading and writing, and constrains what those
+sessions produce with deterministic checks.
+
+## Install
+
+Python 3.10+. The distillation step also needs a logged-in Claude Code or Codex CLI.
 
 ```bash
 git clone https://github.com/zz1358m/humantrace2workflow-verifier.git
@@ -33,117 +85,123 @@ pip install -e .
 ht2wv init
 ```
 
-可选的录屏来源另装：`pip install -e ".[screen]"`（实时录屏，仅 Windows）、`pip install -e ".[video]"`（录屏视频导入）。
+Optional: `pip install -e ".[screen]"` (live recording, Windows only), `pip install -e ".[video]"` (video import).
 
-## 最快的用法
+## Quick start
 
 ```bash
 ht2wv setup
 ```
 
-会在浏览器里打开一个只在本机可访问的问卷页面，分四步：
+opens a questionnaire served on localhost only: connect your servers (key-based ssh, with a connection test),
+tick which local records may be read, give paths for chat exports and work folders, then start
+collect → compile → distill. Sources you did not tick are never read. The command-line equivalent is
+`ht2wv sources --ask` followed by `ht2wv run --days 1`.
 
-1. **连接服务器**：填 `user@host`，点“测试连接”。只用密钥登录；连不上时页面会给出在你自己终端里装公钥的命令。
-2. **勾选本机记录**：Claude Code / Codex 对话、Chrome / Edge 历史、本机 shell 历史、最近打开的文件、git 提交。每项写明会读什么。
-3. **填路径的来源**：微信导出文件、工作目录。
-4. **交给 coding agent 分析**：选天数和后端，点“保存并开始分析”，页面显示采集 → 编译 → 蒸馏的进度。
-
-没勾的来源不会被读取。同样的事也可以用命令行做：`ht2wv sources --ask`，然后 `ht2wv run --days 1`。
-
-
-## 分步用法
+Step by step:
 
 ```bash
-ht2wv init                          # 建数据目录 data/ 和 config.yaml
-
-# 1. 采集（按需选）
-ht2wv sources                       # 列出来源和授权状态；--ask 逐项询问，--allow/--deny <id>，--add-host user@host
-ht2wv collect allowed --days 1      # 采集所有已授权的来源
-ht2wv mark "刚才那版数字抄错了"       # 随手标一句
-
-# 2. 编译成时间线与信号（不调模型）
-ht2wv compile
-
-# 3. 蒸馏：开 agent 会话，先画像，再每个任务建一个 skill
-ht2wv distill --top 3               # --backend claude|codex|manual，--parallel N
-ht2wv tasks; ht2wv skills
-
-# 4. 用
-ht2wv install weekly-report --to claude      # 拷到 ~/.claude/skills/；--to codex 同理
-ht2wv verify weekly-report --input in/ --output out/
-
-# 5. 闭环
-ht2wv optimize weekly-report                 # 冻结 verifier，改进 workflow
-ht2wv shadow weekly-report --input in/ --human 我自己做的/
-ht2wv feedback <run> reject --note "没写数据来源"
-ht2wv evolve weekly-report && ht2wv approve weekly-report
-ht2wv eval weekly-report
+ht2wv sources                       # list sources and consent; --ask, --allow/--deny <id>, --add-host user@host
+ht2wv collect allowed --days 1      # collect everything that was allowed
+ht2wv compile                       # timeline + off-mainline signal candidates (no model)
+ht2wv distill --top 3               # agent sessions: profile, then one skill per task (--backend claude|codex|manual)
+ht2wv install <skill> --to claude   # copy a self-contained skill into ~/.claude/skills (or --to codex)
+ht2wv verify <skill> --input in/ --output out/
+ht2wv optimize <skill>              # freeze the verifier, improve the workflow
+ht2wv shadow <skill> --input in/ --human mine/ ; ht2wv feedback <run> reject --note "..."
+ht2wv evolve <skill> && ht2wv approve <skill>   # verifier changes need your approval
 ```
 
-## 合成样本：不用自己的数据也能跑、能打分
+## What gets built
 
-[examples/samples/](examples/samples/) 里有四个不同的人和任务。每个样本是一份 `sample.yaml` 加一个 `rubric.py`：
+A skill directory holds the pair:
 
-| 样本 | 这个人 | 任务 | 记录来源 |
-|---|---|---|---|
-| `weekly-report` | 增长分析师 | 两周指标 csv → 周报 | Claude Code、Codex、shell、浏览器、聊天 |
-| `swe-bugfix` | 后端工程师 | issue + 模块 → 修复、回归测试、commit message | Claude Code、shell、浏览器、聊天 |
-| `guest-reply` | 民宿老板 | 客人消息 + 店规 → 微信回复 | Claude Code、浏览器、聊天 |
-| `video-publish` | 美食视频博主 | 拍摄笔记 → YouTube 发布信息 | Codex、浏览器、聊天 |
+- **workflow**: `SKILL.md` plus `stages/01-*.md, 02-*.md, …`, one prompt per agent session. Sessions share no
+  memory and hand over through files.
+- **verifier**: `verifier.yaml` with items in five layers: *objective* (person-independent correctness),
+  *process* (order and gating of actions, checked on the action journal), *style* (this person, across tasks),
+  *preference* (this person, this task) and *report* (structure, length and readability of what is reported
+  back), plus a *policy* for how this person checks. It is rendered into one `VERIFIER.md` that every session
+  receives. Every personal item must cite records.
 
-样本里有五样东西：
+## Benchmark: samples with a hidden style
 
-- **purpose 与 rubric**：这个人要 workflow 达成的目的，和他会逐条勾的验收清单。对管线可见。
-- **style**：预先填好的个人风格（6 到 7 条），是生成记录的条件，也是评 verifier 的标准答案。**对管线隐藏。**
-- **records、workdir**：按上面的风格写出来的访问记录，渲染成各来源的原生格式（Claude Code / Codex 的会话 jsonl、带时间戳的 bash 历史、Chrome 的 History 库、聊天导出 csv），再由真实的采集器读回来。
-- **task**：一个留出的任务实例，以及这个人会保留的参考产出（隐藏）。
+[examples/samples/](examples/samples/) holds six samples. In each, a pre-filled personal style conditions the
+records and is then hidden from the pipeline.
+
+| sample | person | task | hidden items | horizon |
+|---|---|---|---|---|
+| `weekly-report` | growth analyst | two csv files → report | 7 | 1 step |
+| `swe-bugfix` | backend engineer | issue → fix, regression test, commit message | 7 | 1 step |
+| `guest-reply` | guesthouse owner | guest message + house rules → reply | 7 | 1 step |
+| `video-publish` | cooking vlogger | shoot notes → publish metadata | 7 | 1 step |
+| `refund-ops` | after-sale operator | one day of refunds in a stateful back office | 11 | 1 day |
+| `refund-week` | after-sale operator | seven days of refunds, state carried over | 17 | 7 days |
+
+A sample contains: the **purpose and rubric** (visible; what the person will tick), the **style** (hidden; the
+answer key), **records** rendered into each source's native format and read back by the real collectors, and a
+held-out **task** with the output the person would keep (hidden).
 
 ```bash
-ht2wv bench validate examples/samples/*          # 样本自检：每条风格在记录里有痕迹，参考产出能过自己的 rubric
-ht2wv bench prepare examples/samples/guest-reply # 只渲染、采集、编译，不启动 agent
+ht2wv bench validate examples/samples/*            # every style item leaves a trace; the reference passes its own rubric
+ht2wv bench prepare examples/samples/guest-reply   # render, ingest, compile; no agent
 ht2wv bench run examples/samples/guest-reply --backend codex --rounds 1
+ht2wv bench run examples/samples/refund-week --backend codex     # long horizon: seven days
 ```
 
-`bench run` 做完整的一圈并给出两个分数：
+Three numbers come out:
 
-1. 蒸馏：画像会话 → 建 skill 会话。workflow 以**多个会话的 prompt** 交付（`stages/01-*.md`、`02-*.md`……），verifier 渲染成一份**所有会话共用的 prompt**。
-2. 在留出的任务上执行：每个 stage 开一个独立的 agent 会话，靠 `work/` 里的文件交接，每个会话都带着同一份验收标准。
-3. **rubric 分**：产出过了几条 rubric。没过的条目反馈给一个迭代会话去改 workflow、补 verifier，然后再执行一轮。
-4. **风格覆盖分**：对每条隐藏风格，把参考产出只在这一处改坏，看 verifier 能不能拦住。风格条目从不反馈给管线。
+- **rubric completion**: how many rubric items the workflow's output passes. Failed items are fed back to an
+  iterate session. For the week, the headline is **how many of the seven days are filled** (all applicable items pass).
+- **style coverage**: for every hidden item, the reference output is broken in exactly that way; the item is
+  covered if the built verifier fails the broken output on something it passes on the reference. Never fed back.
+- **reference acceptance**: whether the built verifier accepts the output the person would have kept.
 
-新样本可以让 agent 按风格生成记录：写好 persona、purpose、rubric、style、task，然后 `ht2wv bench gen <sample.yaml>`。
+### The long-horizon sample
 
-## 可选：录屏
+![week](docs/img/week.en.png)
 
-访问记录里看不到撤销、返工、切窗口核对这类屏幕行为。想要这些信号，可以加上：
+In `refund-week` every action in the back office is real, the daily refund cap makes the order of handling change
+the final state, and what was left undone on one day is still there the next. Each day is graded against the
+person's rules applied to the state the run itself left behind. The reference week and every process probe are
+produced by actually running the back office, once by her rules and once per rule with that rule ignored.
 
-```bash
-ht2wv record --watch D:\work        # 实时录屏，Ctrl+C 停；--watch 的目录里文件保存会留版本
-ht2wv collect video rec.mp4         # 已有的录屏视频 → 去重后的关键帧
-```
+### First results
 
-## 隐私
+Codex CLI, `gpt-6-astra`, `xhigh`, **one run per sample**:
 
-- 一切在本地 `data/`（已 gitignore）。`ht2wv forget <day>` 删一天，删目录即全删。
-- 所有文本入库前脱敏（密钥、口令、卡号、身份证、邮箱、手机号）；浏览器网址不保留 ? 后的参数。
-- 录屏（可选）不记录按键内容，只记次数和快捷键组合；密码管理器、无痕窗口等不截图、不留标题。
-- 微信：只导入你自己导出的聊天文件，不读它的本地加密数据库。
-- 服务器：只走密钥 ssh、只读；不读终端软件（Xshell、PuTTY）里保存的会话和密码，主机由你自己填。
-- 每个来源都要先授权（`data/consent.yaml`），未决定等同于不允许。
-- **蒸馏时轨迹会被你选的 agent（Claude Code / Codex）读取，也就是发给对应的模型服务商。** 想先看会发什么，
-  用 `--backend manual`：只生成任务书，不启动会话。
+| sample | rubric r0 → r1 | style coverage (checks only → with judged items) | reference accepted |
+|---|---|---|---|
+| weekly-report | 5/5 → 5/5 † | 6/6 → 6/6 | yes |
+| swe-bugfix | 4/5 → 5/5 | 1/6 → 6/6 | **no** |
+| guest-reply | 5/5 → 4/5 | 4/6 → 6/6 | **no** |
+| video-publish | 5/5 → 5/5 | 5/6 → 6/6 | yes |
 
-## 花费
+† first scored 2/5 because one of our rubric items wrongly required list bullets; re-scored after fixing the rubric.
 
-Claude 后端的每次会话花费记在 `data/ledger.jsonl`，累计达到 `config.yaml` 里的 `agent.budget_usd`（默认 10）就不再开新会话。
-Codex CLI 不报告花费，这个上限对它不起作用。
+What this shows so far: single-step tasks are too easy (saturated on the first run), and coverage alone is
+misleading, since two of four revised verifiers reject the output the person would have kept. The `refund-week`
+run is in progress. These are single runs on samples whose records we wrote ourselves, so read them as an upper
+bound; there are no human participants yet.
 
-## 已知限制
+## Privacy and cost
 
-- 不能在 Claude Code 会话内部用 Claude 后端（Claude Code 禁止嵌套启动）；在普通终端里运行，或用 `--backend codex`。
-- 来源路径目前按 Windows 写的（浏览器、PowerShell 历史、最近文件）；可选的实时录屏也只支持 Windows。其余见 [docs/framework.md](docs/framework.md) 末尾。
+- Everything stays under `data/` (git-ignored). `ht2wv forget <day>` deletes a day.
+- Text is redacted before storage; browser URLs keep host and path only.
+- WeChat: only files you exported yourself; the local encrypted database is never read.
+- Servers: key-based ssh, read-only; saved sessions and passwords of terminal apps are never read.
+- **During distillation your records are read by the agent you chose, i.e. sent to that model provider.**
+  `--backend manual` only writes the task briefs so you can see what would be sent.
+- Claude sessions are metered in `data/ledger.jsonl` against `agent.budget_usd` (default 10). Codex does not
+  report cost, so the cap does not apply to it.
 
-## 测试
+## Limitations
+
+- The Claude backend cannot be started from inside a Claude Code session; run from a normal terminal or use `--backend codex`.
+- Source paths are written for Windows; live recording is Windows-only.
+- Held-out material is isolated by working directory, not by an OS sandbox.
+
+## Tests
 
 ```bash
 pytest
