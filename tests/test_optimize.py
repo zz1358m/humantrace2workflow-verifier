@@ -189,7 +189,7 @@ def test_improver_gets_only_export_and_current_train_results(demo_skill, fake_ag
         assert {p.name for p in cwd.iterdir()} == {"skill", "train"}
         skill = cwd / "skill"
         assert {p.name for p in skill.iterdir()} == {
-            "SKILL.md", "CHANGELOG.md", "verifier.yaml", "verify.py", "checks"
+            "SKILL.md", "CHANGELOG.md", "verifier.yaml", "verify.py", "checks", "VERIFIER.md"
         }
         objective = yaml.safe_load((skill / "verifier.yaml").read_text(encoding="utf-8"))
         assert "inherits" not in objective

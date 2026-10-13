@@ -1,0 +1,55 @@
+agent:
+  backend: claude
+  model: null
+  max_turns: 80
+  timeout_s: 1500
+  budget_usd: 6.0
+screen:
+  poll_s: 0.5
+  idle_s: 120
+  screenshots: true
+  shot_interval_s: 60
+  shot_max_width: 1280
+  shot_quality: 60
+  watch_dirs: []
+  blob_max_bytes: 2000000
+  blob_exts:
+  - .md
+  - .txt
+  - .csv
+  - .json
+  - .yaml
+  - .yml
+  - .tex
+  - .py
+  - .docx
+  - .xlsx
+  - .pptx
+  clip_preview: 120
+privacy:
+  deny:
+  - 1password
+  - keepass
+  - bitwarden
+  - lastpass
+  - inprivate
+  - incognito
+  - 无痕
+  - 网银
+  - bank
+  redact_extra: []
+sources:
+  claude_dir: ~/.claude/projects
+  codex_dir: ~/.codex/sessions
+  browsers:
+    chrome: ~/AppData/Local/Google/Chrome/User Data/Default/History
+    edge: ~/AppData/Local/Microsoft/Edge/User Data/Default/History
+  git_repos: []
+  msg_max_chars: 4000
+compile:
+  episode_gap_s: 300
+  glance_max_s: 60
+  rework_min_gap_s: 60
+  rework_max_gap_s: 7200
+verifier:
+  accept_threshold: 0.8
