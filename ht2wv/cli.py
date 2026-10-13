@@ -57,8 +57,9 @@ def main(argv=None) -> int:
     p.add_argument("--days", type=float, default=1.0)
     p.add_argument("--top", type=int, default=3)
     p.add_argument("--parallel", type=int, default=1)
-    p.add_argument("--backend")
-    p.add_argument("--model")
+    for name in ("backend", "model", "effort"):
+        p.add_argument(f"--{name}")
+    p.add_argument("--context-window", type=int)
 
     p = sub.add_parser("collect", help="import a non-live source into the trace store")
     cs = p.add_subparsers(dest="source", required=True)
@@ -88,8 +89,9 @@ def main(argv=None) -> int:
     p.add_argument("--task", action="append", help="build only this task (repeatable)")
     p.add_argument("--parallel", type=int, default=1)
     p.add_argument("--skip-profile", action="store_true")
-    for name in ("backend", "model"):
+    for name in ("backend", "model", "effort"):
         p.add_argument(f"--{name}")
+    p.add_argument("--context-window", type=int)
     sub.add_parser("tasks", help="list task candidates found by the profile session")
     sub.add_parser("skills", help="list built skills")
 
@@ -172,7 +174,7 @@ def main(argv=None) -> int:
         from . import collect, distill
         from .compile import compile_day
 
-        for k in ("backend", "model"):
+        for k in ("backend", "model", "effort", "context_window"):
             if getattr(a, k):
                 cfg["agent"][k] = getattr(a, k)
         since = time.time() - a.days * 86400
@@ -210,7 +212,7 @@ def main(argv=None) -> int:
     elif a.cmd == "distill":
         from . import distill
 
-        for k in ("backend", "model"):
+        for k in ("backend", "model", "effort", "context_window"):
             if getattr(a, k):
                 cfg["agent"][k] = getattr(a, k)
         _print(distill.distill(_days(a), a.top, a.task, a.parallel, a.skip_profile, cfg))
