@@ -4,6 +4,11 @@
 这个人的画像在 `profile/profile.md`，个人验收层在 `profile/acceptance-style.yaml`；
 证据在 `traces/<day>/`（`day.md`、`signals.jsonl`、`events.jsonl`、`shots/`、`blobs/`）。
 
+如果数据根目录下有 `request.md`：那是本人写下的目的和 rubric（他会逐条勾的验收清单），
+属于 `stated` 证据，引用写 `request:<id>`。workflow 必须让产出满足其中每一条，verifier 必须覆盖其中每一条；
+但 rubric 只是他说出口的部分，没说出口的标准要从轨迹里找。
+如果有 `workdir/`：那是他工作目录的快照，可以从中取历史输入和产出来建 case（文件名带 `_v1`、`草稿` 的通常是被他改掉的版本）。
+
 要学的不是一个流程，而是一对东西：**workflow**（怎么做）和 **verifier**（这个人认为怎样算做对）。
 模型换代后 workflow 可以重写，verifier 才是要积累的资产，所以 verifier 的每一条都要站得住。
 
@@ -21,6 +26,12 @@
    - “交付前验收”一节固定写：运行 `python verify.py --input <输入目录> --output <产出目录>`，
      FAIL 的修掉重跑，TODO 的条目按 rubric 逐条自评并把结论写进交付说明；
      按输出里的 `policy` 行事（查多深、最多修几轮、什么情况停下问人）。
+   - **workflow 以多个会话的 prompt 交付**：再写 `stages/01-<名字>.md`、`stages/02-<名字>.md` ……（2 到 4 个）。
+     每个文件是交给一个独立 coding agent 会话的完整 prompt：本会话的目标、读什么、产出什么、做到什么程度算完、
+     交接给下一个会话的文件（写在 `work/` 下，写明文件名和内容格式）。会话之间不共享记忆，只靠 `work/` 和 `output/` 里的文件交接。
+     典型拆法：取数与核对 → 起草 → 对照验收标准审查并修正；按这个人实际的工作节奏拆，不要为了凑数硬拆。
+     运行时每个会话都会自动拿到同一份验收标准（由 `verifier.yaml` 渲染成的 prompt），所以 stage 里**不要复述验收条目**，
+     只写这一步怎么做；最后一个 stage 负责跑 `verify.py` 并修到通过。
 2. `verifier.yaml`：
    ```yaml
    skill: {{name}}

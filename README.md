@@ -16,6 +16,7 @@
 
 - 提案：[HumanTrace2Workflow-proposal.pdf](HumanTrace2Workflow-proposal.pdf)
 - 相关工作：[docs/related-work.md](docs/related-work.md)
+- 合成样本与评测：见下文“合成样本”
 - 框架设计：[docs/framework.md](docs/framework.md)
 
 本项目自己不调模型 API。它先让用户逐项授权，确定性地采集和压缩这些记录，然后在用户已有的 Claude Code / Codex 里开无头会话去读、去写 skill，
@@ -79,7 +80,38 @@ ht2wv evolve weekly-report && ht2wv approve weekly-report
 ht2wv eval weekly-report
 ```
 
-不想用自己的数据也能试：`ht2wv synth` 会写入一天的合成轨迹。[examples/demo/](examples/demo/) 是在它上面跑出来的完整结果。
+## 合成样本：不用自己的数据也能跑、能打分
+
+[examples/samples/](examples/samples/) 里有四个不同的人和任务。每个样本是一份 `sample.yaml` 加一个 `rubric.py`：
+
+| 样本 | 这个人 | 任务 | 记录来源 |
+|---|---|---|---|
+| `weekly-report` | 增长分析师 | 两周指标 csv → 周报 | Claude Code、Codex、shell、浏览器、聊天 |
+| `swe-bugfix` | 后端工程师 | issue + 模块 → 修复、回归测试、commit message | Claude Code、shell、浏览器、聊天 |
+| `guest-reply` | 民宿老板 | 客人消息 + 店规 → 微信回复 | Claude Code、浏览器、聊天 |
+| `video-publish` | 美食视频博主 | 拍摄笔记 → YouTube 发布信息 | Codex、浏览器、聊天 |
+
+样本里有五样东西：
+
+- **purpose 与 rubric**：这个人要 workflow 达成的目的，和他会逐条勾的验收清单。对管线可见。
+- **style**：预先填好的个人风格（6 到 7 条），是生成记录的条件，也是评 verifier 的标准答案。**对管线隐藏。**
+- **records、workdir**：按上面的风格写出来的访问记录，渲染成各来源的原生格式（Claude Code / Codex 的会话 jsonl、带时间戳的 bash 历史、Chrome 的 History 库、聊天导出 csv），再由真实的采集器读回来。
+- **task**：一个留出的任务实例，以及这个人会保留的参考产出（隐藏）。
+
+```bash
+ht2wv bench validate examples/samples/*          # 样本自检：每条风格在记录里有痕迹，参考产出能过自己的 rubric
+ht2wv bench prepare examples/samples/guest-reply # 只渲染、采集、编译，不启动 agent
+ht2wv bench run examples/samples/guest-reply --backend codex --rounds 1
+```
+
+`bench run` 做完整的一圈并给出两个分数：
+
+1. 蒸馏：画像会话 → 建 skill 会话。workflow 以**多个会话的 prompt** 交付（`stages/01-*.md`、`02-*.md`……），verifier 渲染成一份**所有会话共用的 prompt**。
+2. 在留出的任务上执行：每个 stage 开一个独立的 agent 会话，靠 `work/` 里的文件交接，每个会话都带着同一份验收标准。
+3. **rubric 分**：产出过了几条 rubric。没过的条目反馈给一个迭代会话去改 workflow、补 verifier，然后再执行一轮。
+4. **风格覆盖分**：对每条隐藏风格，把参考产出只在这一处改坏，看 verifier 能不能拦住。风格条目从不反馈给管线。
+
+新样本可以让 agent 按风格生成记录：写好 persona、purpose、rubric、style、task，然后 `ht2wv bench gen <sample.yaml>`。
 
 ## 可选：录屏
 

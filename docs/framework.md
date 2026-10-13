@@ -172,6 +172,13 @@ items:                                             # 查什么
 `verifier.yaml` 是给人看、给人改的。[verifier.py](../ht2wv/verifier.py) 只依赖标准库和 pyyaml，安装 skill 时被拷成 `verify.py`，
 skill 在 Claude Code / Codex 里执行时自己就能跑验收，不需要装本项目。
 
+### workflow 以多会话 prompt 交付，verifier 是共用的那一份
+
+skill 目录里除了 `SKILL.md` 还有 `stages/NN-<名字>.md`（2 到 4 个），每个文件是交给一个独立 coding agent 会话的完整 prompt。
+执行时（[loop.py](../ht2wv/loop.py) 的 `execute`）按顺序每个 stage 开一个会话，会话之间不共享记忆，只靠沙盒里 `work/` 的文件交接。
+`verifier.yaml` 被渲染成一份 `VERIFIER.md`（条目、rubric、policy），原样附在**每一个**会话的 prompt 后面：
+流程可以拆成任意多段，但“怎样算做对”只有一份定义。最后一个会话负责跑 `verify.py` 并修到通过。
+
 ## ④ 闭环优化：固定 verifier，搜 workflow
 
 `ht2wv optimize <skill>`（[loop.py](../ht2wv/loop.py)）：

@@ -1,0 +1,144 @@
+id: video-publish
+persona: {name: 阿澈, role: 美食视频博主}
+purpose: |
+  我每周发一条做菜视频。给我这期的拍摄笔记，帮我把发布信息准备好：标题、简介、标签、定时发布时间、封面字。
+  产出一个 publish.json，我核对完直接填进后台。
+
+rubric:
+  - {id: R1, claim: 产出恰好一个文件 publish.json，是合法 JSON，包含 title、description、tags、publish_at、thumbnail_text 五个字段}
+  - {id: R2, claim: 简介里包含笔记中的全部章节时间点，从 00:00 开始，按时间顺序}
+  - {id: R3, claim: 标题不超过 20 个字}
+  - {id: R4, claim: 'publish_at 是拍摄日期之后最近的一个周六 18:00（东八区），写成带时区的 ISO 时间'}
+  - {id: R5, claim: 标签 5 到 8 个，没有重复}
+
+style:
+  - id: S1
+    statement: 标题写清楚做什么菜、用什么方法，不用“绝了”“震惊”这类夸张词和感叹号
+    probe: {file: publish.json, replace: ['"title": "15分钟番茄牛腩｜高压锅版"', '"title": "绝了！香到邻居敲门的番茄牛腩"']}
+  - id: S2
+    statement: 简介第一段是章节时间轴，必须从 00:00 开始
+    probe: {file: publish.json, replace: ['00:00 开场\n', '']}
+  - id: S3
+    statement: 简介里列出食材和用量，观众不用回看视频就能备料
+    probe: {file: publish.json, replace: ['\n\n食材：牛腩500克、番茄3个、洋葱半个、姜3片', '']}
+  - id: S4
+    statement: 每期简介都写赞助说明，没有赞助也要写“本期无赞助。”
+    probe: {file: publish.json, replace: ['\n\n本期无赞助。', '']}
+  - id: S5
+    statement: 标签只放和这道菜直接相关的词，不蹭平台热词
+    probe: {file: publish.json, replace: ['"牛肉"]', '"牛肉", "抖音爆款", "vlog"]']}
+  - id: S6
+    statement: 封面字不超过 8 个字
+    probe: {file: publish.json, replace: ['"thumbnail_text": "15分钟番茄牛腩"', '"thumbnail_text": "超级无敌好吃的番茄牛腩做法大公开"']}
+  - id: S7
+    statement: 一律定时发布，不让助手直接点发布，发之前本人要看一遍
+    probe: null
+
+task:
+  input:
+    video_notes.md: |
+      # 第 37 期 拍摄笔记
+      - 菜：番茄牛腩，高压锅版，全程大约 15 分钟
+      - 拍摄日期：2026-03-11
+      - 时长：13:40
+      - 章节：00:00 开场 / 00:40 备料 / 03:10 炒番茄 / 06:30 高压锅炖煮 / 12:50 出锅调味
+      - 食材：牛腩 500 克、番茄 3 个、洋葱半个、姜 3 片
+      - 赞助：无
+  reference_output:
+    publish.json: |
+      {
+        "title": "15分钟番茄牛腩｜高压锅版",
+        "description": "00:00 开场\n00:40 备料\n03:10 炒番茄\n06:30 高压锅炖煮\n12:50 出锅调味\n\n食材：牛腩500克、番茄3个、洋葱半个、姜3片\n\n本期无赞助。",
+        "tags": ["番茄牛腩", "高压锅", "家常菜", "快手菜", "牛肉"],
+        "publish_at": "2026-03-14T18:00:00+08:00",
+        "thumbnail_text": "15分钟番茄牛腩"
+      }
+
+workdir:
+  ep35/video_notes.md: |
+    # 第 35 期 拍摄笔记
+    - 菜：葱油拌面，10 分钟
+    - 拍摄日期：2026-02-25
+    - 章节：00:00 开场 / 00:30 熬葱油 / 04:20 煮面 / 06:10 拌面
+    - 食材：细面 200 克、小葱 6 根、生抽 2 勺、老抽 1 勺、糖半勺
+    - 赞助：无
+  ep35/publish_v1.json: |
+    {
+      "title": "绝了！！一口入魂的葱油拌面，学会再也不点外卖",
+      "description": "今天教大家做超好吃的葱油拌面，喜欢的话记得点赞关注哦～",
+      "tags": ["葱油拌面", "美食", "vlog", "抖音爆款", "热门"],
+      "publish_at": "now",
+      "thumbnail_text": "全网最好吃的葱油拌面教程来啦"
+    }
+  ep35/publish.json: |
+    {
+      "title": "10分钟葱油拌面",
+      "description": "00:00 开场\n00:30 熬葱油\n04:20 煮面\n06:10 拌面\n\n食材：细面200克、小葱6根、生抽2勺、老抽1勺、糖半勺\n\n本期无赞助。",
+      "tags": ["葱油拌面", "拌面", "家常菜", "快手菜", "面食"],
+      "publish_at": "2026-02-28T18:00:00+08:00",
+      "thumbnail_text": "10分钟葱油拌面"
+    }
+  ep36/publish.json: |
+    {
+      "title": "空气炸锅烤鸡翅｜不用腌过夜",
+      "description": "00:00 开场\n00:35 处理鸡翅\n02:50 调腌料\n05:00 进空气炸锅\n09:40 出锅\n\n食材：鸡翅中10个、生抽2勺、蜂蜜1勺、蒜4瓣\n\n本期赞助：某某厨具（空气炸锅）。",
+      "tags": ["烤鸡翅", "空气炸锅", "家常菜", "鸡翅", "快手菜"],
+      "publish_at": "2026-03-07T18:00:00+08:00",
+      "thumbnail_text": "空气炸锅烤鸡翅"
+    }
+
+records:
+  codex:
+    - session: ep35meta
+      cwd: /home/ache/channel/ep35
+      turns:
+        - {at: "2026-02-26 21:00:00", user: "根据 video_notes.md 给我写这期的发布信息，输出 publish.json"}
+        - {at: "2026-02-26 21:01:10", assistant: "已生成 publish.json，标题为“绝了！！一口入魂的葱油拌面，学会再也不点外卖”。", tools: [shell, apply_patch]}
+        - {at: "2026-02-26 21:01:50", user: "标题不要这种调调，“绝了”“一口入魂”全去掉，感叹号也去掉。就写做什么、多久做完", from: [S1]}
+        - {at: "2026-02-26 21:02:30", assistant: "标题已改为“10分钟葱油拌面”。", tools: [apply_patch]}
+        - {at: "2026-02-26 21:03:00", user: "简介开头放时间轴，从 00:00 开始，不从 00:00 开始平台不识别章节", from: [S2]}
+        - {at: "2026-02-26 21:03:40", assistant: "已在简介开头加入章节时间轴。", tools: [apply_patch]}
+        - {at: "2026-02-26 21:04:10", user: "食材和用量也写进简介，总有人在评论区问几克", from: [S3]}
+        - {at: "2026-02-26 21:04:40", assistant: "已加入食材清单。", tools: [apply_patch]}
+        - {at: "2026-02-26 21:05:10", user: "标签里“抖音爆款”“vlog”“热门”删掉，只留跟这道菜有关的", from: [S5]}
+        - {at: "2026-02-26 21:05:40", assistant: "标签已精简为 5 个。", tools: [apply_patch]}
+        - {at: "2026-02-26 21:06:10", user: "封面字太长了，手机上根本看不清，8 个字以内", from: [S6]}
+        - {at: "2026-02-26 21:06:40", assistant: "封面字改为“10分钟葱油拌面”。", tools: [apply_patch]}
+        - {at: "2026-02-26 21:07:10", user: "publish_at 怎么是 now？我都是周六晚上六点定时发。还有末尾加一句“本期无赞助。”，没有赞助也要写", from: [S7, S4]}
+        - {at: "2026-02-26 21:07:50", assistant: "已改为 2026-02-28T18:00:00+08:00，并补上赞助说明。", tools: [apply_patch]}
+        - {at: "2026-02-26 21:08:10", user: "可以了"}
+    - session: ep36meta
+      cwd: /home/ache/channel/ep36
+      turns:
+        - {at: "2026-03-05 20:30:00", user: "第 36 期，烤鸡翅，这期有赞助，照上次的规矩写发布信息"}
+        - {at: "2026-03-05 20:31:20", assistant: "已生成 publish.json，并准备调用上传脚本直接发布。", tools: [shell, apply_patch]}
+        - {at: "2026-03-05 20:31:40", abort: true, from: [S7]}
+        - {at: "2026-03-05 20:32:00", user: "别直接发！只出 json，我自己看过再定时", from: [S7]}
+        - {at: "2026-03-05 20:32:40", assistant: "已取消，仅保留 publish.json。", tools: []}
+        - {at: "2026-03-05 20:33:10", user: "赞助那句呢？有赞助就写清楚是谁赞助了什么", from: [S4]}
+        - {at: "2026-03-05 20:33:50", assistant: "已加上“本期赞助：某某厨具（空气炸锅）。”", tools: [apply_patch]}
+        - {at: "2026-03-05 20:34:10", user: "行"}
+    - session: subtitle
+      cwd: /home/ache/channel/ep35
+      turns:
+        - {at: "2026-02-27 10:00:00", user: "把 ep35.srt 里的错别字改一下，“生抽”别写成“生愁”"}
+        - {at: "2026-02-27 10:01:00", assistant: "已修正 3 处错别字。", tools: [shell, apply_patch]}
+        - {at: "2026-02-27 10:01:20", user: "谢谢"}
+  browser:
+    - {at: "2026-02-26 20:50:00", url: "https://studio.youtube.com/channel/UCxxxx/videos", title: "频道内容 - YouTube Studio"}
+    - {at: "2026-02-26 21:03:20", url: "https://support.google.com/youtube/answer/9884579", title: "视频章节 - YouTube 帮助", from: [S2]}
+    - {at: "2026-02-28 18:05:00", url: "https://studio.youtube.com/video/abc/analytics", title: "视频数据分析 - YouTube Studio"}
+    - {at: "2026-03-03 14:00:00", url: "https://shop.example.com/cookware", title: "铸铁锅 - 购物"}
+    - {at: "2026-03-05 20:28:00", url: "https://support.google.com/youtube/answer/154235", title: "付费宣传内容披露 - YouTube 帮助", from: [S4]}
+  chat:
+    - {at: "2026-02-20 16:00:00", peer: 剪辑小林, sender: 小林, text: "澈哥，封面字我写了“史上最简单的家常红烧肉做法”，可以吗"}
+    - {at: "2026-02-20 16:04:00", peer: 剪辑小林, sender: 阿澈, text: "太长，缩到 8 个字以内，手机上一眼能看完才行", from: [S6]}
+    - {at: "2026-02-20 16:06:00", peer: 剪辑小林, sender: 小林, text: "标题要不要加个“震惊”，点击会高"}
+    - {at: "2026-02-20 16:09:00", peer: 剪辑小林, sender: 阿澈, text: "不加，咱们不做标题党。标题就老老实实写做什么菜、用什么办法", from: [S1]}
+    - {at: "2026-02-22 11:00:00", peer: 粉丝群, sender: 糖糖, text: "上期的酱汁比例是多少呀，视频里说太快了"}
+    - {at: "2026-02-22 11:05:00", peer: 粉丝群, sender: 阿澈, text: "以后每期我都把食材和用量写在简介里，不用再回看", from: [S3]}
+    - {at: "2026-02-24 09:00:00", peer: 粉丝群, sender: 老周, text: "澈哥这期是不是广告啊"}
+    - {at: "2026-02-24 09:06:00", peer: 粉丝群, sender: 阿澈, text: "不是。以后有没有赞助我都会在简介最后写明白", from: [S4]}
+    - {at: "2026-03-01 20:00:00", peer: 剪辑小林, sender: 小林, text: "标签我多加了几个热门词，能蹭点流量"}
+    - {at: "2026-03-01 20:03:00", peer: 剪辑小林, sender: 阿澈, text: "删了，标签只放跟这道菜直接相关的，蹭来的人看两秒就走", from: [S5]}
+    - {at: "2026-03-02 12:00:00", peer: 妈, sender: 阿澈, text: "周末回去吃饭"}

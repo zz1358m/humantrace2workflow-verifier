@@ -82,6 +82,8 @@ def run(kind: str, task: str, cwd: Path, cfg: dict | None = None, add_dirs: tupl
             cmd += ["-c", f'model_reasoning_effort="{ac["effort"]}"']
         if ac.get("context_window"):
             cmd += ["-c", f"model_context_window={int(ac['context_window'])}"]
+        if ac.get("fast"):
+            cmd += ["-c", 'service_tier="fast"']
         cmd += ["-"]
     else:
         return Result(False, f"unknown backend {backend}", 0.0, sdir)

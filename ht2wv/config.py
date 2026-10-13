@@ -13,6 +13,7 @@ DEFAULTS = {
         "model": None,
         "effort": None,  # reasoning effort, e.g. "xhigh" (codex: model_reasoning_effort; claude: --effort)
         "context_window": None,  # codex only: model_context_window, in tokens
+        "fast": False,  # codex only: service_tier = "fast"
         "max_turns": 80,
         "timeout_s": 3600,
         "budget_usd": 10.0,  # total cap across all agent sessions, enforced via ledger.jsonl
