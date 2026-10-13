@@ -179,10 +179,46 @@ Codex CLI, `gpt-6-astra`, `xhigh`, **one run per sample**:
 
 † first scored 2/5 because one of our rubric items wrongly required list bullets; re-scored after fixing the rubric.
 
-What this shows so far: single-step tasks are too easy (saturated on the first run), and coverage alone is
-misleading, since two of four revised verifiers reject the output the person would have kept. The `refund-week`
-run is in progress. These are single runs on samples whose records we wrote ourselves, so read them as an upper
-bound; there are no human participants yet.
+Single-step tasks are too easy (saturated on the first run), and coverage alone is misleading: two of four
+revised verifiers reject the output the person would have kept.
+
+**The week** (`refund-week`, same settings, one run, 47 sessions, 5 h 22 min): **3 of 7 days filled**, 33 of 43
+day-level rubric verdicts pass.
+
+| day | R1 | R2 | R3 | R4 | R5 | R6 | R7 | filled | what happened |
+|---|---|---|---|---|---|---|---|---|---|
+| Mon | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | · | yes | |
+| Tue | ✓ | ✗ | ✓ | ✗ | ✓ | ✓ | · | no | re-sent a notice to an order she leaves alone |
+| Wed | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | · | yes | after one revision |
+| Thu | ✗ | ✗ | ✓ | ✗ | ✓ | ✗ | · | no | first session blocked; nothing was done |
+| Fri | ✓ | ✗ | ✓ | ✗ | ✓ | ✓ | · | no | cleared Thursday's backlog first; cap used up |
+| Sat | ✓ | ✗ | ✓ | ✗ | ✓ | ✓ | · | no | escalated again three orders already waiting |
+| Sun | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | yes | weekly summary included |
+
+- **Tuesday is a workflow error, and the built verifier caught it too late.** Its check flagged the extra notice,
+  but it ran in the last session, after the notice had gone out. A standard about an irreversible action has to
+  gate the action, not the delivery.
+- **Thursday is partly our harness.** The session cited a reference file the workflow told it to read; our export
+  step had not copied it into the run. Friday and Saturday follow from Thursday: the run cleared Thursday's
+  backlog first (her own rule), and our oracle, which delivered each day's requests only once, counted that as
+  wrong. Judged with Thursday's requests still in the inbox, Friday differs from her rules on 1 order of 10
+  instead of 8.
+- **The week ends short**: 20 refunds totalling ¥5556.00 and 5 orders pending, against 23, ¥6026.00 and 1.
+- **Hidden style: 16 of 17 caught, and all five reference days rejected.** Part of that was our sample (the
+  reference report opened with "orders handled" where her own reports say "requests"); with that corrected, the
+  same verifier's scripted items accept three of the five days and catch 17 of 17. The rest is the verifier: hard
+  judged items nobody asked for (state that the source is unverified; prove you reconciled before writing),
+  and a rule added during revision (look up orders she does not touch).
+- **Why it only got stricter**: kept outputs are replayed against scripted items only, never against judged ones,
+  and the revision prompt may add items but, short of a conflict with the rubric, not remove them. The verifier went from 10 items to 16.
+
+After this run we fixed the export step, the sample's reference reports, and the skipped-day case (a day on which
+nothing is done now leaves its inbox for the next day). **The week has not been re-run with these fixes**; the
+table is the run as it happened. Details are in the paper; the run's report and the skill it built are in
+[docs/results/refund-week](docs/results/refund-week/).
+
+These are single runs on samples whose records we wrote ourselves, so read them as an upper bound; there are no
+human participants yet.
 
 ## Privacy and cost
 

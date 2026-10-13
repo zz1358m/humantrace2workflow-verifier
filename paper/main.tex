@@ -14,6 +14,8 @@
 \input{figs/style}
 \newcommand{\sys}{\textsc{ht2wv}}
 \newcommand{\todo}[1]{\textcolor{red}{[#1]}}
+\newcommand{\rpass}{$\checkmark$}
+\newcommand{\rfail}{$\times$}
 \setlist{nosep,leftmargin=1.4em}
 \captionsetup{font=small,labelfont=bf}
 
@@ -40,8 +42,9 @@ layered verifier that every session receives as one shared prompt. To measure th
 which a pre-filled personal style conditions the records and is then hidden: the system is scored on how much of
 the person's rubric its workflow satisfies and on how many hidden style items its verifier catches, including a
 seven-day, stateful sample in which doing the right things in the wrong order changes the outcome. In first runs,
-single-step tasks are saturated at the first attempt, while half of the learned verifiers reject the output the
-person would have kept: coverage without acceptance of the reference is not a verifier. Only the step that
+single-step tasks are saturated at the first attempt and the seven-day sample is filled on three days of seven,
+while in three of the five samples we ran the learned verifier rejects the output the person would have kept:
+coverage without acceptance of the reference is not a verifier. Only the step that
 distils a verifier from a person reads raw personal records; we therefore see the sample format as training
 material for locally hosted open-weight models, and the pairs of many different people as the members of a
 diverse, self-improving working group, the stage after this one.
@@ -155,7 +158,7 @@ fifth assembles pairs distilled from many different people into one group.}
       calls no model API itself, and delegates all reading and writing to headless sessions of an existing coding
       agent whose outputs it constrains with deterministic checks.
 \item A sample format and scoring protocol with a hidden, pre-filled personal style, including an order-sensitive,
-      seven-day stateful task, and first measurements on six samples (\S\ref{sec:bench}--\ref{sec:results}).
+      seven-day stateful task, and first measurements on five of six samples (\S\ref{sec:bench}--\ref{sec:results}).
 \end{itemize}
 
 % ---------------------------------------------------------------------------------------------------------------
@@ -310,7 +313,7 @@ refund-week & after-sale operator & seven days of refunds, stateful & agent, she
 \label{sec:results}
 
 \paragraph{Setup.} All sessions are Codex CLI sessions with \texttt{gpt-6-astra} at \texttt{xhigh} reasoning
-effort on one server. Each sample was run once. For the single-step samples we run the built skill, give the
+effort on one server. Each sample was run once; the single-day \emph{refund-ops} was not run, since Monday of the week covers it. For the single-step samples we run the built skill, give the
 rubric verdicts to one iterate session, and run again; judged verifier items are evaluated only in the last round.
 
 \begin{table}[h]
@@ -353,9 +356,94 @@ was ours: the rubric demanded list bullets the person never asked for. We keep t
 it is the same failure as the previous paragraph on the benchmark's side, an over-specific check standing in for
 a standard.
 
-\paragraph{The week.} \todo{refund-week result: days filled out of 7, per-day rubric matrix, style coverage by
-group (in-day order / reporting / cross-day), reference acceptance per day. Run in progress at the time of writing;
-fill in from \texttt{bench-report.md}.}
+\paragraph{The week.} \emph{refund-week} took 47 sessions and 5\,h\,22\,min: one profile session, one build,
+19 stage sessions, four revisions and 22 judge sessions. The built workflow has three stages (reconcile, process,
+deliver) and a verifier with ten items of its own. \textbf{Three of seven days are filled}, and 33 of the 43
+day-level rubric verdicts pass (Table~\ref{tab:week}). The four unfilled days have three different causes, and
+one of them is ours.
+
+\begin{table}[h]
+\centering\small\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{@{}lcccccccll@{}}
+\toprule
+day & R1 & R2 & R3 & R4 & R5 & R6 & R7 & filled & what happened \\
+\midrule
+Mon & \rpass & \rpass & \rpass & \rpass & \rpass & \rpass & -- & yes & \\
+Tue & \rpass & \rfail & \rpass & \rfail & \rpass & \rpass & -- & no & re-sent a notice to an order she leaves alone \\
+Wed & \rpass & \rpass & \rpass & \rpass & \rpass & \rpass & -- & yes & after one revision \\
+Thu & \rfail & \rfail & \rpass & \rfail & \rpass & \rfail & -- & no & first session blocked; nothing was done \\
+Fri & \rpass & \rfail & \rpass & \rfail & \rpass & \rpass & -- & no & cleared Thursday's backlog first; cap used up \\
+Sat & \rpass & \rfail & \rpass & \rfail & \rpass & \rpass & -- & no & escalated again three orders already waiting \\
+Sun & \rpass & \rpass & \rpass & \rpass & \rpass & \rpass & \rpass & yes & weekly summary included \\
+\bottomrule
+\end{tabular}
+\caption{The week, one run. R1: the back office's own log and state, and a report, exist. R2: every order's outcome
+is the one her rules give from the state the run itself had left. R3: looked up before any action. R4: the buyer
+is notified exactly once, last, with the matching template, and not at all for an order left alone. R5: no
+declined refund and no order refunded twice. R6: the first line of the daily report agrees with the back office.
+R7 (Sunday): the same for the weekly summary. After an unfilled day one revision session sees that day's verdicts.
+On Thursday R3 and R5 pass only because nothing was done.}
+\label{tab:week}
+\end{table}
+
+\emph{Tuesday} is a workflow error. An order that had been told on Monday to send the goods back was still
+waiting, with no new request. She leaves such an order alone; the workflow sent the same notice again. The built
+verifier had this right: its check on closing notices reported one notice where none was due. But it ran in the
+last session, after the notice had gone out, and a notice cannot be recalled. A standard about an irreversible
+action is of no use at delivery time; it has to gate the action.
+
+\emph{Thursday} is partly a harness error. The first session wrote a block notice and nothing was done that day.
+It gave two grounds: a reference file that the workflow told it to read was not in the run directory, because our
+export step had not copied it; and one order's rule was unclear, although both readings of it lead to the same
+outcome. The notice says the other five orders are unaffected, but the harness ends a day at any block notice. We
+cannot tell whether the day would have been filled with the file present.
+
+\emph{Friday and Saturday} follow from Thursday. On Friday the run found Thursday's five unhandled requests in
+the order book and handled them first, by first request time, which is her own rule for work left over. That
+used up the daily cap, and three of Friday's own orders were escalated instead of refunded. Our oracle delivers
+each day's requests once; it did not know Thursday's were still open and counted eight of ten orders wrong.
+Judged again with Thursday's requests and approvals still in the inbox, one order of ten differs: a rejection by
+the supervisor that was delivered on Thursday only and that the run never saw. On Saturday the run escalated,
+and notified, three orders that were already waiting for quota. That is the same class of error as Tuesday's, on
+a branch the Tuesday revision had not covered.
+
+\emph{Sunday} is filled, weekly summary included, but the week ends short: 20 refunds totalling \textyen 5556.00
+and five orders pending, against 23 refunds, \textyen 6026.00 and one pending in the reference week. One buyer was
+never told that a request had been rejected, and 41 notices went out where she would have sent 36.
+
+\paragraph{Hidden style and the reference.} The verifier at the end of the week catches 16 of the 17 hidden items
+(12 by scripts alone): six of six in-day order rules, four of five reporting items, six of six cross-day rules.
+It also \emph{rejects all five reference days} that we probe. We traced every failing item to its origin.
+\begin{itemize}
+\item \emph{Ours.} The reference daily report opened with the number of orders handled, where the reports she kept
+      and the hidden item S6 open with the number of requests. Two scripted items and one judged item failed it,
+      correctly. After we corrected the reference and re-ran the scripted items of the same verifier (no model
+      involved), the reference passes all of them on three of the five days and scripted coverage rises from
+      12/17 to 17/17. The one item missed in the run, the currency format, had been masked: the item that
+      detects it was already failing on the reference.
+\item \emph{From revision.} On the other two days the scripts still fail the reference, for not looking up, and
+      not listing in the report, orders she does not touch. The revision that repaired Tuesday added this.
+\item \emph{Judged items nobody asked for.} Two hard judged items fail on every day. One, present since the
+      first build, wants the report to say that the back-office source is unverified unless independent receipts
+      are attached; the other, added in a revision, wants evidence that totals were reconciled before the report
+      was written. On Sunday a third, inherited from the profile, fails the weekly summary for dating the earlier
+      days' figures. None of this is in her records. (Judged items were not re-run on the corrected reference;
+      the grounds they gave do not involve the first line.)
+\end{itemize}
+
+\paragraph{Why the verifier only became stricter.} Two mechanisms. The lint step replays the outputs she kept
+against the scripted items, and those passed all week; judged items are never run on her kept outputs, so a hard
+judged item can contradict them unnoticed. And the revision prompt forbids relaxing or removing an item unless it contradicts
+the rubric, so the verifier grew from ten items to sixteen without once being held against something she would accept. The cost
+was not confined to the verifier. By Sunday the workflow's weekly summary opened by calling its own totals
+unverified and carried a column on the scope of evidence. It passes the rubric item, which checks the numbers,
+and it does not read like hers. This is the triangle of Figure~\ref{fig:triangle} turning backwards: a standard
+the person never approved, steering the workflow away from her.
+
+\paragraph{What we changed after this run.} The export step now ships a skill's reference files, and the lint step
+flags links that an executing session cannot follow. The reference reports open the way her kept reports do. A
+day on which nothing is done leaves its requests and approvals in the next day's inbox. The week has not been
+re-run with these changes; Table~\ref{tab:week} is the run as it happened.
 
 \paragraph{Caveats.} These numbers are from one run, one model and samples whose records we wrote ourselves to
 express the style, so they are closer to an upper bound than to an estimate. There are no human participants yet.
@@ -393,6 +481,11 @@ should include standards that are only ever shown, never said; standards that ch
 whose different habits appear in the same chats (the refund samples contain a few). Isolation of held-out material
 relies on working directories, not on an operating-system sandbox. Finally, the verifier is only as good as the
 person's own blind spots; the objective layer and the visibility of every item are the current answer to that.
+
+The week run points at three changes to the method itself, none of them made yet. Judged items should be replayed
+on the outputs the person kept before they may be hard, as scripted items already are. A revision must be able to
+remove or soften an item, with the kept outputs as its regression set, or the verifier can only tighten. And an
+item about an irreversible action has to be checked before the action is taken, not when the work is delivered.
 
 \begin{thebibliography}{9}\small
 \bibitem{recordskill} Anthropic. Record a Skill in Claude Cowork. Product feature, 2026.

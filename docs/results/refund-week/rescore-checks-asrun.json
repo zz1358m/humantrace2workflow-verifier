@@ -1,0 +1,189 @@
+{
+ "covered": 12,
+ "total": 17,
+ "reference_verdict": "reject",
+ "reference_failed": [
+  "O2",
+  "O5",
+  "O6",
+  "RD1"
+ ],
+ "pending_judge": true,
+ "items": [
+  {
+   "id": "S1",
+   "statement": "按申请时间从早到晚处理，不按表格里的行顺序（额度有限，先来的先退）",
+   "covered": true,
+   "by": [
+    "O2",
+    "PR2",
+    "PR3"
+   ],
+   "verdict": "reject",
+   "day": 1
+  },
+  {
+   "id": "S2",
+   "statement": "买家自己原因的退货，退款要扣掉运费",
+   "covered": true,
+   "by": [
+    "O2"
+   ],
+   "verdict": "reject",
+   "day": 1
+  },
+  {
+   "id": "S3",
+   "statement": "单笔超过 500 元的不直接退，升级给主管",
+   "covered": true,
+   "by": [
+    "O2",
+    "PR3"
+   ],
+   "verdict": "reject",
+   "day": 1
+  },
+  {
+   "id": "S4",
+   "statement": "钱退成功之后才通知买家，通知永远是这一单的最后一步",
+   "covered": true,
+   "by": [
+    "PR3"
+   ],
+   "verdict": "reject",
+   "day": 1
+  },
+  {
+   "id": "S5",
+   "statement": "已发货但退货还没签收的不退款，通知买家先寄回",
+   "covered": true,
+   "by": [
+    "O2",
+    "PR3"
+   ],
+   "verdict": "reject",
+   "day": 1
+  },
+  {
+   "id": "S10",
+   "statement": "当日额度不够退整单时，整单升级，不做部分退款",
+   "covered": true,
+   "by": [
+    "O2",
+    "PR3"
+   ],
+   "verdict": "reject",
+   "day": 1
+  },
+  {
+   "id": "S6",
+   "statement": "汇报第一行就是一句话结论：几条申请、退了几单合计多少、升级几单、暂不退几单",
+   "covered": false,
+   "by": [],
+   "verdict": "reject",
+   "day": 1
+  },
+  {
+   "id": "S7",
+   "statement": "每单一行的表格（订单、处理、金额、原因），不写“我先……然后……”的过程叙述",
+   "covered": false,
+   "by": [],
+   "verdict": "reject",
+   "day": 1
+  },
+  {
+   "id": "S8",
+   "statement": "需要她亲自处理的单（升级的）排在表格最前面，并标上【待你处理】",
+   "covered": false,
+   "by": [],
+   "verdict": "reject",
+   "day": 1
+  },
+  {
+   "id": "S9",
+   "statement": "金额一律写成 ¥ 加两位小数",
+   "covered": false,
+   "by": [],
+   "verdict": "reject",
+   "day": 1
+  },
+  {
+   "id": "S11",
+   "statement": "汇报里不贴后台日志和命令，她要看的是结果",
+   "covered": false,
+   "by": [],
+   "verdict": "reject",
+   "day": 1
+  },
+  {
+   "id": "L1",
+   "statement": "前一天因额度不足没退成的单，第二天和新申请排成一队，按最初申请时间先后处理，所以它们排在最前面",
+   "covered": true,
+   "by": [
+    "PR3"
+   ],
+   "verdict": "reject",
+   "day": 2
+  },
+  {
+   "id": "L2",
+   "statement": "主管批准的单，批准后的当天就退，不等买家再来催",
+   "covered": true,
+   "by": [
+    "PR3"
+   ],
+   "verdict": "reject",
+   "day": 2
+  },
+  {
+   "id": "L3",
+   "statement": "之前通知过“先寄回”的单，买家寄回签收后再申请要正常退，不算重复",
+   "covered": true,
+   "by": [
+    "PR3"
+   ],
+   "verdict": "reject",
+   "day": 3
+  },
+  {
+   "id": "L4",
+   "statement": "之前任何一天已经退过款的订单再来申请，一律不重复退",
+   "covered": true,
+   "by": [
+    "O3",
+    "O7",
+    "PR3"
+   ],
+   "verdict": "reject",
+   "day": 3
+  },
+  {
+   "id": "L5",
+   "statement": "主管驳回的单要通知买家（rejected），不退款，也不能放着不管",
+   "covered": true,
+   "by": [
+    "O2",
+    "PR3"
+   ],
+   "verdict": "reject",
+   "day": 4
+  },
+  {
+   "id": "L6",
+   "statement": "周日的周汇总第一行是一句话结论：本周共退几单合计多少、还有几单待处理；下面每天一行",
+   "covered": true,
+   "by": [
+    "RW1"
+   ],
+   "verdict": "reject",
+   "day": 7
+  }
+ ],
+ "reference_by_day": {
+  "d1": "reject",
+  "d2": "reject",
+  "d3": "reject",
+  "d4": "reject",
+  "d7": "reject"
+ }
+}

@@ -37,7 +37,7 @@ sample = {
         {"id": "R7", "claim": "（周日）WEEK.md 第一行是一句话结论，本周退款单数与合计、仍待处理的单数与后台累计一致", "days": [7]},
     ],
     "style": [],
-    "week": {"dir": "week", "days": 7},
+    "week": {"dir": "week", "days": 7, "inbox": ["requests.csv", "approvals.csv"]},  # inbox: still waiting the next day if a day is skipped
     "workdir": dict(base["workdir"]),
     "records": base["records"],
 }

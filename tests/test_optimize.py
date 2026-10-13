@@ -353,5 +353,5 @@ def test_run_check_disables_bytecode_in_command_and_copied_environment(tmp_path,
     cmd, kwargs = calls[0]
     assert cmd == [sys.executable, "-B", str(tmp_path / "checks/check.py"),
                    "--input", str(inp), "--output", str(out)]
-    assert kwargs["env"] == {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+    assert kwargs["env"] == {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "PYTHONIOENCODING": "utf-8"}
     assert os.environ["PYTHONDONTWRITEBYTECODE"] == "0"

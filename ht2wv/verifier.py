@@ -104,6 +104,7 @@ def lint(skill_dir: Path, file: str = "verifier.yaml") -> list[str]:
 def _run_check(skill_dir: Path, script: str, inp: Path, out: Path) -> tuple[bool | None, str]:
     env = os.environ.copy()
     env["PYTHONDONTWRITEBYTECODE"] = "1"
+    env["PYTHONIOENCODING"] = "utf-8"  # we read utf-8 back; without this a check printing non-ASCII dies on a cp1252 console
     try:
         r = subprocess.run([sys.executable, "-B", str(skill_dir / script), "--input", str(inp), "--output", str(out)],
                            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120, env=env)

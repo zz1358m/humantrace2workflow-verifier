@@ -118,11 +118,12 @@ def day_stats(steps: list[dict]) -> dict:
             "rejected": sum(1 for s in steps if s["kind"] == "rejected"), "duplicates": sum(1 for s in steps if s["label"] == "duplicate")}
 
 
-def report(steps: list[dict]) -> str:
-    """Her daily report: the verdict in one line, what needs her first, one order per row, nothing else."""
+def report(steps: list[dict], n_requests: int) -> str:
+    """Her daily report: the verdict in one line, what needs her first, one order per row, nothing else.
+    The first line opens with how many requests came in today, the way the reports she kept do."""
     st = day_stats(steps)
-    lines = [f"今日处理 {st['handled']} 单：退款 {st['refunded']} 单合计 ¥{st['amount']:.2f}，升级 {st['escalated']} 单，"
-             f"暂不退 {st['waiting']} 单，驳回 {st['rejected']} 单，重复 {st['duplicates']} 条。", "",
+    lines = [f"今日 {n_requests} 条申请：退款 {st['refunded']} 单合计 ¥{st['amount']:.2f}，升级 {st['escalated']} 单，"
+             f"暂不退 {st['waiting']} 单，" + (f"驳回 {st['rejected']} 单，" if st["rejected"] else "") + f"重复 {st['duplicates']} 条。", "",
              "| 订单 | 处理 | 金额 | 原因 |", "|---|---|---|---|"]
     name = {"escalate": "【待你处理】升级", "still_pending": "【待你处理】仍未退", "awaiting": "待主管审批", "refund": "已退款",
             "wait": "暂不退", "rejected": "已驳回"}

@@ -32,6 +32,9 @@
      典型拆法：取数与核对 → 起草 → 对照验收标准审查并修正；按这个人实际的工作节奏拆，不要为了凑数硬拆。
      运行时每个会话都会自动拿到同一份验收标准（由 `verifier.yaml` 渲染成的 prompt），所以 stage 里**不要复述验收条目**，
      只写这一步怎么做；最后一个 stage 负责跑 `verify.py` 并修到通过。
+   - 步骤里要引用的补充材料（字段说明、决策表之类）放在 `references/` 下，用相对链接指过去。
+     执行会话只拿得到 `SKILL.md`、`stages/`、`references/`、`scripts/`、`assets/`、`checks/` 和验收标准；
+     `cases/`、`evidence.md`、`CHANGELOG.md` 不会给它，引用它们等于引用一个不存在的文件。
 2. `verifier.yaml`：
    ```yaml
    skill: {{name}}

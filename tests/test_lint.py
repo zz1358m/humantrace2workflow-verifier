@@ -206,3 +206,28 @@ def test_proposed_verifier_uses_same_lint_rules(demo_skill):
     assert not report["ok"]
     assert report["file"] == "verifier.proposed.yaml"
     assert all(any(cid in error for error in report["errors"]) for cid in ("w40-first", "w41-first"))
+
+
+def test_export_ships_what_the_workflow_links_to(demo_skill, tmp_path):
+    # a week-long run lost a day because SKILL.md told sessions to read references/contracts.md and export left it behind
+    (demo_skill / "references").mkdir()
+    (demo_skill / "references" / "contracts.md").write_text("fields and decision table\n", encoding="utf-8")
+    (demo_skill / "stages").mkdir(exist_ok=True)
+    (demo_skill / "stages" / "01-collect.md").write_text("read [the contracts](../references/contracts.md)\n", encoding="utf-8")
+    skill_md = demo_skill / "SKILL.md"
+    skill_md.write_text(skill_md.read_text(encoding="utf-8") + "\nFields: [contracts](references/contracts.md#fields). "
+                        "Report like [this](REPORT.md) and see https://example.com/spec.\n", encoding="utf-8")
+    assert loop.unshipped_links(demo_skill) == []
+    dest = loop.export(SKILL, tmp_path / "out")
+    assert (dest / "references" / "contracts.md").read_text(encoding="utf-8") == "fields and decision table\n"
+    assert (dest / "stages" / "01-collect.md").exists() and not (dest / "cases").exists()
+
+
+def test_lint_flags_links_executing_sessions_cannot_follow(demo_skill):
+    (demo_skill / "evidence.md").write_text("where each item came from\n", encoding="utf-8")
+    skill_md = demo_skill / "SKILL.md"
+    skill_md.write_text(skill_md.read_text(encoding="utf-8") + "\nSee [evidence](evidence.md) and [the table](references/missing.md).\n", encoding="utf-8")
+    errors = loop.lint(SKILL)["errors"]
+    assert any("evidence.md" in e and "not copied" in e for e in errors)
+    assert any("references/missing.md" in e and "does not exist" in e for e in errors)
+    assert len(errors) == 2

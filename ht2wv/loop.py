@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shutil
 import tempfile
 import time
@@ -14,6 +15,8 @@ import yaml
 from . import agent, config, verifier
 
 AGENT_DIRS = {"claude": "~/.claude/skills", "codex": "~/.codex/skills"}
+SHIPPED_DIRS = ("checks", "stages", "references", "scripts", "assets")  # what export() copies next to SKILL.md
+LINK_RE = re.compile(r"\]\(([^)\s]+)\)")
 
 
 def skill_dir(name: str) -> Path:
@@ -38,7 +41,7 @@ def cases(name: str) -> list[dict]:
 def lint(name: str, proposed: bool = False) -> dict:
     d = skill_dir(name)
     file = "verifier.proposed.yaml" if proposed else "verifier.yaml"
-    errs = verifier.lint(d, file)
+    errs = verifier.lint(d, file) + unshipped_links(d)
     rows = []
     if not any("unreadable" in e for e in errs):
         labelled = cases(name)
@@ -98,16 +101,41 @@ def export(name: str, dest: Path) -> Path:
         shutil.rmtree(dest)
     dest.mkdir(parents=True)
     shutil.copyfile(d / "SKILL.md", dest / "SKILL.md")
-    if (d / "checks").is_dir():
-        shutil.copytree(d / "checks", dest / "checks")
+    for sub in SHIPPED_DIRS:  # everything the workflow may tell a session to read or run; cases/ stay behind
+        if (d / sub).is_dir():
+            shutil.copytree(d / sub, dest / sub, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     v = verifier.load(d)
     v.pop("inherits", None)  # personal style layer is merged in, so the copy stands alone
     (dest / "verifier.yaml").write_text(yaml.safe_dump(v, allow_unicode=True, sort_keys=False), encoding="utf-8")
     shutil.copyfile(Path(verifier.__file__), dest / "verify.py")
-    if (d / "stages").is_dir():
-        shutil.copytree(d / "stages", dest / "stages")
     (dest / "VERIFIER.md").write_text(verifier_prompt(v), encoding="utf-8")
     return dest
+
+
+def unshipped_links(d: Path) -> list[str]:
+    """Links in the workflow's prompts to a file of this skill that an executing session will not get:
+    it exists but export() leaves it behind, or it is named under a shipped folder and is not there.
+    Links that resolve to nothing in the skill (an output template, a path inside a run) are not ours to judge."""
+    root = d.resolve()
+    out = []
+    for f in [d / "SKILL.md", *stages(d)]:
+        if not f.exists():
+            continue
+        for target in dict.fromkeys(LINK_RE.findall(f.read_text(encoding="utf-8"))):
+            path = target.split("#")[0]
+            if not path or "://" in path or path.startswith(("/", "mailto:")):
+                continue
+            found = [c for c in ((f.parent / path).resolve(), (d / path).resolve()) if c.is_relative_to(root) and c != root]
+            parts = [c.relative_to(root).parts for c in found]
+            if any(c.is_file() and (p[0] in SHIPPED_DIRS or p in (("SKILL.md",), ("verifier.yaml",), ("verify.py",))) for c, p in zip(found, parts)):
+                continue
+            where = f.relative_to(d).as_posix()
+            if any(c.exists() for c in found):
+                out.append(f"{where}: links to {path}, which is not copied to executing sessions "
+                           f"(supporting files go in {', '.join(s + '/' for s in SHIPPED_DIRS[2:])})")
+            elif any(p[0] in SHIPPED_DIRS for p in parts):
+                out.append(f"{where}: links to {path}, which does not exist")
+    return out
 
 
 def verifier_prompt(v: dict) -> str:

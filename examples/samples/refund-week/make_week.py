@@ -111,7 +111,7 @@ def run_day(files: dict, prev_state: str | None, history: dict, dest: Path, brea
         st.update(day=json.loads(files["orders.json"])["day"], cap=CAP, refunded_today=0.0, declined_today=[])
         (out / "state.json").write_text(json.dumps(st, ensure_ascii=False, indent=1), encoding="utf-8")
     (out / "journal.jsonl").touch()
-    (out / "REPORT.md").write_text(policy.report(steps), encoding="utf-8")
+    (out / "REPORT.md").write_text(policy.report(steps, len(requests)), encoding="utf-8")
     for f in out.iterdir():
         shutil.copy(f, dest / f.name)
     shutil.rmtree(work)

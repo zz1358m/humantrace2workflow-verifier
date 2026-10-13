@@ -1,0 +1,694 @@
+{
+ "sample": "refund-week",
+ "prepare": {
+  "home": "<home>",
+  "ingested": {
+   "agents": {
+    "claude": 60
+   },
+   "browser": {
+    "chrome": 5
+   },
+   "chat": 23,
+   "shell@local": 23
+  },
+  "days": [
+   "2026-06-03",
+   "2026-06-05",
+   "2026-06-08",
+   "2026-06-09",
+   "2026-06-10",
+   "2026-06-11",
+   "2026-06-12",
+   "2026-06-13",
+   "2026-06-14",
+   "2026-06-15",
+   "2026-06-16",
+   "2026-06-17",
+   "2026-06-18",
+   "2026-06-19",
+   "2026-06-21"
+  ],
+  "signals": {
+   "2026-06-03": {},
+   "2026-06-05": {},
+   "2026-06-08": {},
+   "2026-06-09": {},
+   "2026-06-10": {
+    "respec": 3,
+    "abort": 1,
+    "correction": 1,
+    "acceptance": 1
+   },
+   "2026-06-11": {
+    "acceptance": 1
+   },
+   "2026-06-12": {
+    "correction": 4,
+    "deny": 1,
+    "respec": 3,
+    "abort": 1,
+    "acceptance": 1
+   },
+   "2026-06-13": {},
+   "2026-06-14": {},
+   "2026-06-15": {},
+   "2026-06-16": {
+    "correction": 1,
+    "respec": 2
+   },
+   "2026-06-17": {
+    "respec": 2,
+    "correction": 1
+   },
+   "2026-06-18": {
+    "respec": 3,
+    "acceptance": 1
+   },
+   "2026-06-19": {},
+   "2026-06-21": {
+    "respec": 1,
+    "acceptance": 1
+   }
+  }
+ },
+ "days": [
+  {
+   "day": 1,
+   "filled": true,
+   "executor_ok": true,
+   "checklist": {
+    "passed": 6,
+    "total": 6,
+    "items": [
+     {
+      "id": "R1",
+      "claim": "产出 journal.jsonl 和 state.json（由后台生成，不是手写的）以及 REPORT.md",
+      "pass": true,
+      "detail": "state.json 与日志回放的结果不一致"
+     },
+     {
+      "id": "R2",
+      "claim": "今天每一单的结果（退多少 / 升级 / 暂不退 / 驳回 / 不动）和我自己处理的一样，包括前几天留下来的单",
+      "pass": true,
+      "detail": ""
+     },
+     {
+      "id": "R3",
+      "claim": "每一单在做任何动作之前都先查询过",
+      "pass": true,
+      "detail": ""
+     },
+     {
+      "id": "R4",
+      "claim": "通知买家是这一单当天的最后一个动作，当天恰好通知一次，模板和结果对得上；今天不该动的单不通知",
+      "pass": true,
+      "detail": ""
+     },
+     {
+      "id": "R5",
+      "claim": "没有被支付系统拒绝的退款；任何订单都没有被退两次，包括前几天已经退过的",
+      "pass": true,
+      "detail": "被拒绝的退款：[]；重复退款（含之前几天退过的）：[]"
+     },
+     {
+      "id": "R6",
+      "claim": "REPORT.md 第一行是一句话结论，里面的退款单数、退款合计、升级单数与后台当天实际一致",
+      "pass": true,
+      "detail": "第一行：'2026-06-22 共 8 条申请，退款 4 单合计 ¥925.00，升级 2 单，暂不退 1 单。'；后台今天：退款 4 单合计 925.00，升级 2 单"
+     }
+    ]
+   },
+   "blocked": false
+  },
+  {
+   "day": 2,
+   "filled": false,
+   "executor_ok": true,
+   "checklist": {
+    "passed": 4,
+    "total": 6,
+    "items": [
+     {
+      "id": "R1",
+      "claim": "产出 journal.jsonl 和 state.json（由后台生成，不是手写的）以及 REPORT.md",
+      "pass": true,
+      "detail": "state.json 与日志回放的结果不一致"
+     },
+     {
+      "id": "R2",
+      "claim": "今天每一单的结果（退多少 / 升级 / 暂不退 / 驳回 / 不动）和我自己处理的一样，包括前几天留下来的单",
+      "pass": false,
+      "detail": "W104: 应为 none，实际 wait"
+     },
+     {
+      "id": "R3",
+      "claim": "每一单在做任何动作之前都先查询过",
+      "pass": true,
+      "detail": ""
+     },
+     {
+      "id": "R4",
+      "claim": "通知买家是这一单当天的最后一个动作，当天恰好通知一次，模板和结果对得上；今天不该动的单不通知",
+      "pass": false,
+      "detail": "W104 今天不该通知买家"
+     },
+     {
+      "id": "R5",
+      "claim": "没有被支付系统拒绝的退款；任何订单都没有被退两次，包括前几天已经退过的",
+      "pass": true,
+      "detail": "被拒绝的退款：[]；重复退款（含之前几天退过的）：[]"
+     },
+     {
+      "id": "R6",
+      "claim": "REPORT.md 第一行是一句话结论，里面的退款单数、退款合计、升级单数与后台当天实际一致",
+      "pass": true,
+      "detail": "第一行：'2026-06-23 共 3 条申请，退款 3 单合计 ¥910.00，升级 2 单，暂不退 1 单。'；后台今天：退款 3 单合计 910.00，升级 2 单"
+     }
+    ]
+   },
+   "blocked": true,
+   "iterated": true
+  },
+  {
+   "day": 3,
+   "filled": true,
+   "executor_ok": true,
+   "checklist": {
+    "passed": 6,
+    "total": 6,
+    "items": [
+     {
+      "id": "R1",
+      "claim": "产出 journal.jsonl 和 state.json（由后台生成，不是手写的）以及 REPORT.md",
+      "pass": true,
+      "detail": "state.json 与日志回放的结果不一致"
+     },
+     {
+      "id": "R2",
+      "claim": "今天每一单的结果（退多少 / 升级 / 暂不退 / 驳回 / 不动）和我自己处理的一样，包括前几天留下来的单",
+      "pass": true,
+      "detail": ""
+     },
+     {
+      "id": "R3",
+      "claim": "每一单在做任何动作之前都先查询过",
+      "pass": true,
+      "detail": ""
+     },
+     {
+      "id": "R4",
+      "claim": "通知买家是这一单当天的最后一个动作，当天恰好通知一次，模板和结果对得上；今天不该动的单不通知",
+      "pass": true,
+      "detail": ""
+     },
+     {
+      "id": "R5",
+      "claim": "没有被支付系统拒绝的退款；任何订单都没有被退两次，包括前几天已经退过的",
+      "pass": true,
+      "detail": "被拒绝的退款：[]；重复退款（含之前几天退过的）：[]"
+     },
+     {
+      "id": "R6",
+      "claim": "REPORT.md 第一行是一句话结论，里面的退款单数、退款合计、升级单数与后台当天实际一致",
+      "pass": true,
+      "detail": "第一行：'2026-06-24 共 4 条申请，退款 4 单合计 ¥916.00，升级 1 单，暂不退 0 单。'；后台今天：退款 4 单合计 916.00，升级 1 单"
+     }
+    ]
+   },
+   "blocked": false
+  },
+  {
+   "day": 4,
+   "filled": false,
+   "executor_ok": true,
+   "checklist": {
+    "passed": 2,
+    "total": 6,
+    "items": [
+     {
+      "id": "R1",
+      "claim": "产出 journal.jsonl 和 state.json（由后台生成，不是手写的）以及 REPORT.md",
+      "pass": false,
+      "detail": "缺少 ['REPORT.md', 'journal.jsonl', 'state.json']"
+     },
+     {
+      "id": "R2",
+      "claim": "今天每一单的结果（退多少 / 升级 / 暂不退 / 驳回 / 不动）和我自己处理的一样，包括前几天留下来的单",
+      "pass": false,
+      "detail": "W111: 应为 rejected，实际 none；W113: 应为 wait，实际 none；W114: 应为 refund 450.00，实际 none；W115: 应为 refund 480.00，实际 none；W116: 应为 escalate，实际 none；W117: 应为 refund 52.00，实际 none"
+     },
+     {
+      "id": "R3",
+      "claim": "每一单在做任何动作之前都先查询过",
+      "pass": true,
+      "detail": ""
+     },
+     {
+      "id": "R4",
+      "claim": "通知买家是这一单当天的最后一个动作，当天恰好通知一次，模板和结果对得上；今天不该动的单不通知",
+      "pass": false,
+      "detail": "W111 通知了 0 次；W113 通知了 0 次；W114 通知了 0 次；W115 通知了 0 次；W116 通知了 0 次；W117 通知了 0 次"
+     },
+     {
+      "id": "R5",
+      "claim": "没有被支付系统拒绝的退款；任何订单都没有被退两次，包括前几天已经退过的",
+      "pass": true,
+      "detail": "被拒绝的退款：[]；重复退款（含之前几天退过的）：[]"
+     },
+     {
+      "id": "R6",
+      "claim": "REPORT.md 第一行是一句话结论，里面的退款单数、退款合计、升级单数与后台当天实际一致",
+      "pass": false,
+      "detail": "第一行：''；后台今天：退款 0 单合计 0.00，升级 0 单"
+     }
+    ]
+   },
+   "blocked": true,
+   "iterated": true
+  },
+  {
+   "day": 5,
+   "filled": false,
+   "executor_ok": true,
+   "checklist": {
+    "passed": 4,
+    "total": 6,
+    "items": [
+     {
+      "id": "R1",
+      "claim": "产出 journal.jsonl 和 state.json（由后台生成，不是手写的）以及 REPORT.md",
+      "pass": true,
+      "detail": "state.json 与日志回放的结果不一致"
+     },
+     {
+      "id": "R2",
+      "claim": "今天每一单的结果（退多少 / 升级 / 暂不退 / 驳回 / 不动）和我自己处理的一样，包括前几天留下来的单",
+      "pass": false,
+      "detail": "W111: 应为 none，实际 escalate；W114: 应为 none，实际 refund 450.00；W115: 应为 none，实际 refund 480.00；W116: 应为 none，实际 escalate；W117: 应为 none，实际 refund 52.00；W119: 应为 refund 260.00，实际 escalate；W120: 应为 refund 298.00，实际 escalate；W121: 应为 refund 390.00，实际 escalate"
+     },
+     {
+      "id": "R3",
+      "claim": "每一单在做任何动作之前都先查询过",
+      "pass": true,
+      "detail": ""
+     },
+     {
+      "id": "R4",
+      "claim": "通知买家是这一单当天的最后一个动作，当天恰好通知一次，模板和结果对得上；今天不该动的单不通知",
+      "pass": false,
+      "detail": "W111 今天不该通知买家；W114 今天不该通知买家；W115 今天不该通知买家；W116 今天不该通知买家；W117 今天不该通知买家；W119 模板应为 refunded，实际 escalated；W120 模板应为 refunded，实际 escalated；W121 模板应为 refunded，实际 escalated"
+     },
+     {
+      "id": "R5",
+      "claim": "没有被支付系统拒绝的退款；任何订单都没有被退两次，包括前几天已经退过的",
+      "pass": true,
+      "detail": "被拒绝的退款：[]；重复退款（含之前几天退过的）：[]"
+     },
+     {
+      "id": "R6",
+      "claim": "REPORT.md 第一行是一句话结论，里面的退款单数、退款合计、升级单数与后台当天实际一致",
+      "pass": true,
+      "detail": "第一行：'2026-06-26 共 5 条申请，退款 3 单合计 ¥982.00，升级 6 单，暂不退 1 单。'；后台今天：退款 3 单合计 982.00，升级 6 单"
+     }
+    ]
+   },
+   "blocked": false,
+   "iterated": true
+  },
+  {
+   "day": 6,
+   "filled": false,
+   "executor_ok": true,
+   "checklist": {
+    "passed": 4,
+    "total": 6,
+    "items": [
+     {
+      "id": "R1",
+      "claim": "产出 journal.jsonl 和 state.json（由后台生成，不是手写的）以及 REPORT.md",
+      "pass": true,
+      "detail": "state.json 与日志回放的结果不一致"
+     },
+     {
+      "id": "R2",
+      "claim": "今天每一单的结果（退多少 / 升级 / 暂不退 / 驳回 / 不动）和我自己处理的一样，包括前几天留下来的单",
+      "pass": false,
+      "detail": "W119: 应为 none，实际 escalate；W120: 应为 none，实际 escalate；W121: 应为 none，实际 escalate"
+     },
+     {
+      "id": "R3",
+      "claim": "每一单在做任何动作之前都先查询过",
+      "pass": true,
+      "detail": ""
+     },
+     {
+      "id": "R4",
+      "claim": "通知买家是这一单当天的最后一个动作，当天恰好通知一次，模板和结果对得上；今天不该动的单不通知",
+      "pass": false,
+      "detail": "W119 今天不该通知买家；W120 今天不该通知买家；W121 今天不该通知买家"
+     },
+     {
+      "id": "R5",
+      "claim": "没有被支付系统拒绝的退款；任何订单都没有被退两次，包括前几天已经退过的",
+      "pass": true,
+      "detail": "被拒绝的退款：[]；重复退款（含之前几天退过的）：[]"
+     },
+     {
+      "id": "R6",
+      "claim": "REPORT.md 第一行是一句话结论，里面的退款单数、退款合计、升级单数与后台当天实际一致",
+      "pass": true,
+      "detail": "第一行：'2026-06-27 共 3 条申请，退款 3 单合计 ¥875.00，升级 4 单，暂不退 0 单。'；后台今天：退款 3 单合计 875.00，升级 4 单"
+     }
+    ]
+   },
+   "blocked": false,
+   "iterated": true
+  },
+  {
+   "day": 7,
+   "filled": true,
+   "executor_ok": true,
+   "checklist": {
+    "passed": 7,
+    "total": 7,
+    "items": [
+     {
+      "id": "R1",
+      "claim": "产出 journal.jsonl 和 state.json（由后台生成，不是手写的）以及 REPORT.md",
+      "pass": true,
+      "detail": "state.json 与日志回放的结果不一致"
+     },
+     {
+      "id": "R2",
+      "claim": "今天每一单的结果（退多少 / 升级 / 暂不退 / 驳回 / 不动）和我自己处理的一样，包括前几天留下来的单",
+      "pass": true,
+      "detail": ""
+     },
+     {
+      "id": "R3",
+      "claim": "每一单在做任何动作之前都先查询过",
+      "pass": true,
+      "detail": ""
+     },
+     {
+      "id": "R4",
+      "claim": "通知买家是这一单当天的最后一个动作，当天恰好通知一次，模板和结果对得上；今天不该动的单不通知",
+      "pass": true,
+      "detail": ""
+     },
+     {
+      "id": "R5",
+      "claim": "没有被支付系统拒绝的退款；任何订单都没有被退两次，包括前几天已经退过的",
+      "pass": true,
+      "detail": "被拒绝的退款：[]；重复退款（含之前几天退过的）：[]"
+     },
+     {
+      "id": "R6",
+      "claim": "REPORT.md 第一行是一句话结论，里面的退款单数、退款合计、升级单数与后台当天实际一致",
+      "pass": true,
+      "detail": "第一行：'2026-06-28 共 3 条申请，退款 3 单合计 ¥948.00，升级 3 单，暂不退 0 单。'；后台今天：退款 3 单合计 948.00，升级 3 单"
+     },
+     {
+      "id": "R7",
+      "claim": "（周日）WEEK.md 第一行是一句话结论，本周退款单数与合计、仍待处理的单数与后台累计一致",
+      "pass": true,
+      "detail": "WEEK.md 第一行：'2026-06-22 至 2026-06-28 本周退款单数及合计未证实；可见日期材料合计 20 单、¥5556.00，截至周日仍待处理 5 单。'；后台累计：退款 20 单合计 5556.00，仍待处理 5 单"
+     }
+    ]
+   },
+   "blocked": false
+  }
+ ],
+ "distill": {
+  "days": [
+   "2026-06-03",
+   "2026-06-05",
+   "2026-06-08",
+   "2026-06-09",
+   "2026-06-10",
+   "2026-06-11",
+   "2026-06-12",
+   "2026-06-13",
+   "2026-06-14",
+   "2026-06-15",
+   "2026-06-16",
+   "2026-06-17",
+   "2026-06-18",
+   "2026-06-19",
+   "2026-06-21"
+  ],
+  "profile": {
+   "session": "20261013-065222-profile",
+   "ok": true,
+   "cost": 0.0,
+   "summary": "已写入：\n\n- [profile/profile.md](<home>/profile/profile.md)\n- [profile/acceptance-style.yaml](<home>/profile/acceptance-style.yaml)\n- [profile/tasks.yaml](<home>/profile/tasks.yaml)\n\n识别出 **4 个任务**，按 score 排序：\n\n1. `process-daily-refunds`：10\n2. `reconcile-refund-carryovers`：9\n3. `write-refund-daily-report`：9\n4. `write-refund-weekly-summary`：8\n\n证据偏弱：固定“两轮修正”仅为假设；接受后补查只能证明轻量核对；周报完整会话仅一次。6 月 18 日是否重复通知、本周累计是否与后台一致，现有记录不足以确认。"
+  },
+  "tasks": [
+   "process-daily-refunds"
+  ],
+  "skills": [
+   {
+    "skill": "process-daily-refunds",
+    "session": "20261013-070406-skill-process-daily-refunds",
+    "agent_ok": true,
+    "cost": 0.0,
+    "lint_ok": true,
+    "lint_errors": [],
+    "cases": 4
+   }
+  ],
+  "spent_usd": 0.0
+ },
+ "skill": "process-daily-refunds",
+ "filled": 3,
+ "lint_ok": true,
+ "style": {
+  "covered": 16,
+  "total": 17,
+  "reference_verdict": "reject",
+  "reference_failed": [
+   "O2",
+   "O4",
+   "O5",
+   "O6",
+   "P1",
+   "PR5",
+   "RD1",
+   "RP1",
+   "ST1"
+  ],
+  "pending_judge": false,
+  "items": [
+   {
+    "id": "S1",
+    "statement": "按申请时间从早到晚处理，不按表格里的行顺序（额度有限，先来的先退）",
+    "covered": true,
+    "by": [
+     "O2",
+     "PR2",
+     "PR3"
+    ],
+    "verdict": "reject",
+    "day": 1
+   },
+   {
+    "id": "S2",
+    "statement": "买家自己原因的退货，退款要扣掉运费",
+    "covered": true,
+    "by": [
+     "O2"
+    ],
+    "verdict": "reject",
+    "day": 1
+   },
+   {
+    "id": "S3",
+    "statement": "单笔超过 500 元的不直接退，升级给主管",
+    "covered": true,
+    "by": [
+     "O2",
+     "P1",
+     "PR3",
+     "PR4",
+     "RP4"
+    ],
+    "verdict": "reject",
+    "day": 1
+   },
+   {
+    "id": "S4",
+    "statement": "钱退成功之后才通知买家，通知永远是这一单的最后一步",
+    "covered": true,
+    "by": [
+     "PR3",
+     "PR4"
+    ],
+    "verdict": "reject",
+    "day": 1
+   },
+   {
+    "id": "S5",
+    "statement": "已发货但退货还没签收的不退款，通知买家先寄回",
+    "covered": true,
+    "by": [
+     "O2",
+     "P1",
+     "PR3",
+     "PR4",
+     "RP4",
+     "RP5"
+    ],
+    "verdict": "reject",
+    "day": 1
+   },
+   {
+    "id": "S10",
+    "statement": "当日额度不够退整单时，整单升级，不做部分退款",
+    "covered": true,
+    "by": [
+     "O2",
+     "P1",
+     "PR3",
+     "PR4",
+     "RP4"
+    ],
+    "verdict": "reject",
+    "day": 1
+   },
+   {
+    "id": "S6",
+    "statement": "汇报第一行就是一句话结论：几条申请、退了几单合计多少、升级几单、暂不退几单",
+    "covered": true,
+    "by": [
+     "RP5"
+    ],
+    "verdict": "reject",
+    "day": 1
+   },
+   {
+    "id": "S7",
+    "statement": "每单一行的表格（订单、处理、金额、原因），不写“我先……然后……”的过程叙述",
+    "covered": true,
+    "by": [
+     "P1",
+     "RP4",
+     "RP5",
+     "ST1"
+    ],
+    "verdict": "reject",
+    "day": 1
+   },
+   {
+    "id": "S8",
+    "statement": "需要她亲自处理的单（升级的）排在表格最前面，并标上【待你处理】",
+    "covered": true,
+    "by": [
+     "RP4"
+    ],
+    "verdict": "reject",
+    "day": 1
+   },
+   {
+    "id": "S9",
+    "statement": "金额一律写成 ¥ 加两位小数",
+    "covered": false,
+    "by": [],
+    "verdict": "reject",
+    "day": 1
+   },
+   {
+    "id": "S11",
+    "statement": "汇报里不贴后台日志和命令，她要看的是结果",
+    "covered": true,
+    "by": [
+     "RP5"
+    ],
+    "verdict": "reject",
+    "day": 1
+   },
+   {
+    "id": "L1",
+    "statement": "前一天因额度不足没退成的单，第二天和新申请排成一队，按最初申请时间先后处理，所以它们排在最前面",
+    "covered": true,
+    "by": [
+     "PR3",
+     "ST1"
+    ],
+    "verdict": "reject",
+    "day": 2
+   },
+   {
+    "id": "L2",
+    "statement": "主管批准的单，批准后的当天就退，不等买家再来催",
+    "covered": true,
+    "by": [
+     "PR3",
+     "RP4"
+    ],
+    "verdict": "reject",
+    "day": 2
+   },
+   {
+    "id": "L3",
+    "statement": "之前通知过“先寄回”的单，买家寄回签收后再申请要正常退，不算重复",
+    "covered": true,
+    "by": [
+     "P1",
+     "PR3",
+     "ST1"
+    ],
+    "verdict": "reject",
+    "day": 3
+   },
+   {
+    "id": "L4",
+    "statement": "之前任何一天已经退过款的订单再来申请，一律不重复退",
+    "covered": true,
+    "by": [
+     "O3",
+     "O7",
+     "P1",
+     "PR3",
+     "PR4",
+     "RP4",
+     "ST1"
+    ],
+    "verdict": "reject",
+    "day": 3
+   },
+   {
+    "id": "L5",
+    "statement": "主管驳回的单要通知买家（rejected），不退款，也不能放着不管",
+    "covered": true,
+    "by": [
+     "O2",
+     "P1",
+     "PR3"
+    ],
+    "verdict": "reject",
+    "day": 4
+   },
+   {
+    "id": "L6",
+    "statement": "周日的周汇总第一行是一句话结论：本周共退几单合计多少、还有几单待处理；下面每天一行",
+    "covered": true,
+    "by": [
+     "RP4",
+     "RP5",
+     "RW1"
+    ],
+    "verdict": "reject",
+    "day": 7
+   }
+  ],
+  "reference_by_day": {
+   "d1": "reject",
+   "d2": "reject",
+   "d3": "reject",
+   "d4": "reject",
+   "d7": "reject"
+  }
+ },
+ "spent_usd": 0.0
+}

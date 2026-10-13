@@ -403,9 +403,23 @@ def run(sample_dir: Path, rounds: int = 2, judge: bool = True, cfg_over: dict | 
     return report
 
 
+def _with_backlog(files: dict, backlog: dict) -> dict:
+    """Put the rows of a skipped day's inbox files (csv, one header line) in front of today's."""
+    if not backlog:
+        return files
+    out = dict(files)
+    for name, old in backlog.items():
+        new = files.get(name, "")
+        out[name] = old.rstrip("\n") + "\n" + "".join(new.splitlines(keepends=True)[1:]) if new else old
+    if "README.md" in out:
+        out["README.md"] = out["README.md"].rstrip("\n") + "\n\n昨天什么都没有处理：" + "、".join(f"`{f}`" for f in backlog) + " 里保留了昨天的条目，排在今天的前面。\n"
+    return out
+
+
 def run_week(sample_dir: Path, judge: bool = True, cfg_over: dict | None = None, home: Path | None = None, iterate: bool = True) -> dict:
     """Long horizon: one skill, seven days. Each day starts from the state the run itself left behind the day
-    before, so what was done wrong on Monday is still there on Tuesday. The score is how many days are filled,
+    before, so what was done wrong on Monday is still there on Tuesday. A day on which nothing was done at all
+    leaves its inbox files (week.inbox) waiting for the next day. The score is how many days are filled,
     i.e. pass every rubric item that applies that day."""
     sample = load(sample_dir)
     errs = validate(sample)
@@ -435,10 +449,11 @@ def run_week(sample_dir: Path, judge: bool = True, cfg_over: dict | None = None,
         report["stopped"] = "no skill was built (see sessions/ for the task briefs and agent output)"
         save()
         return report
-    n, prev_state, history = sample["week"]["days"], None, {}
+    n, prev_state, history, backlog = sample["week"]["days"], None, {}, {}
     for day in range(1, n + 1):
         rdir = home / "runs" / f"week-d{day}"
         files = day_context(sample, day, prev_state or "", history) if day > 1 else day_context(sample, 1)
+        files = _with_backlog(files, backlog)
         _write_tree(rdir / "day-input", files)
         ex = loop.execute(name, rdir / "day-input", rdir / "exec", cfg)
         out = rdir / "exec" / "output"
@@ -447,6 +462,10 @@ def run_week(sample_dir: Path, judge: bool = True, cfg_over: dict | None = None,
                                "blocked": (out / "BLOCKED.md").exists()})
         if (out / "state.json").exists():  # whatever was done today is what tomorrow starts from
             prev_state = (out / "state.json").read_text(encoding="utf-8")
+            backlog = {}
+        else:  # nothing was done at all: what came in today does not vanish, it is still in the inbox tomorrow
+            backlog = {f: files[f] for f in sample["week"].get("inbox", []) if f in files}
+            report["days"][-1]["skipped"] = True
         if (out / "REPORT.md").exists():
             history[f"d{day}.md"] = (out / "REPORT.md").read_text(encoding="utf-8")
         save()
@@ -474,7 +493,7 @@ def render_report(rep: dict) -> str:
         out += [f"**filled {rep.get('filled', 0)} / {len(rep['days'])} days**", "", "| day | " + " | ".join(ids) + " | filled |", "|---|" + "---|" * (len(ids) + 1)]
         for d in rep["days"]:
             got = {i["id"]: i["pass"] for i in d["checklist"]["items"]}
-            out.append(f"| {d['day']} | " + " | ".join("✓" if got.get(i) else "·" if i not in got else "✗" for i in ids) + f" | {'yes' if d['filled'] else 'no'} |")
+            out.append(f"| {d['day']} | " + " | ".join("✓" if got.get(i) else "·" if i not in got else "✗" for i in ids) + f" | {'yes' if d['filled'] else 'no, nothing was done' if d.get('skipped') else 'no'} |")
         out += ["", "## Rubric items that failed", ""]
         out += [f"- day {d['day']} `{i['id']}` {i['claim']} — {i['detail']}" for d in rep["days"] for i in d["checklist"]["items"] if not i["pass"]] or ["- none"]
         if rep.get("style"):

@@ -1,0 +1,198 @@
+skill: process-daily-refunds
+version: 5
+kind: [ops, data, comms]
+accept_threshold: 0.8
+inherits: ../../profile/acceptance-style.yaml
+policy: {}
+items:
+  - id: O1
+    layer: objective
+    claim: 完整业务交付含后台 journal.jsonl、state.json、日报及适用周报，最终状态可由输入昨日状态和完整当日日志重建。
+    how: check
+    check: checks/o1_artifacts.py
+    weight: 3
+    hard: true
+    confidence: 1.0
+    source: stated
+    evidence: ["request:R1", "request:R7"]
+  - id: O2
+    layer: objective
+    claim: 当天申请及应接续旧单的退款、升级、暂不退、驳回、不动五类结果与订单事实、有效审批、完整应退额及顺序分配额度相符；无新申请且无新驳回的未签收旧 need_return、无新申请/审批且仍待权限或权限/签收满足而轮到时整单额度仍不足的旧升级单只查不动，符合退款条件的足额旧单接续，目录订单不自动入队。
+    how: check
+    check: checks/o2_outcomes.py
+    weight: 3
+    hard: true
+    confidence: 0.96
+    source: corrected
+    evidence: ["request:R2", "2026-06-10:S004", "2026-06-12:S001", "2026-06-12:S004", "2026-06-12:S005", "2026-06-17:S002", "2026-06-18:S001", "2026-06-18:S002", "2026-06-18:S003"]
+  - id: O3
+    layer: objective
+    claim: 所有退款调用成功、金额为正，且没有拆单、同日重复或跨日重复退款。
+    how: check
+    check: checks/o3_payments.py
+    weight: 3
+    hard: true
+    confidence: 1.0
+    source: stated
+    evidence: ["request:R5", "2026-06-12:S005", "2026-06-18:S002"]
+  - id: O4
+    layer: objective
+    claim: 后台来源和周累计的证据边界如实交代，不以手写记录、无日期历史汇报或表内自洽冒充后台认证。
+    how: judge
+    rubric: >-
+      只读输入与产出：对照输入 env.py 的落盘协议、输出原始 journal/state，以及交付说明中的文件来源和可用调用回执，判断是否有改写后台证据的迹象；
+      同时核周报每日日期归属、周初基线和待办口径。可用后台导出/调用回执须保留，缺少时不得声称已有独立来源认证。
+      普通无签名 JSON 只能做一致性核对，不能靠“我运行了”独立证明来源；来源不足必须标未证实，不能凭文案判为真实后台成功。
+      通过例：真实调用生成的日志、状态与输入协议相符，交付说明明确“一致性通过，无签名来源证明”；
+      历史报告片段注明缺 state，只认可报告范围，不认证整批资金动作。
+      不通过例：用自己计算的正确结果覆盖 journal/state，或用七行表加起来正确宣称后台累计已核实；无日期历史文件擅自按文件顺序配日期。
+      若实际来源仍不能确定，结论写“未证实”，不能把该项自评成已认证；完成状态须保留这一限制。
+    weight: 3
+    hard: true
+    confidence: 0.85
+    source: stated
+    evidence: ["request:R1", "request:R7", "2026-06-16:S003", "2026-06-21:S001"]
+  - id: O5
+    layer: objective
+    claim: 旧 need_return 单无新申请、无新驳回且仍未签收时，保留当天查询，但不退款、不升级、不入库、不通知。
+    how: check
+    check: checks/o5_carryover.py
+    weight: 3
+    hard: true
+    confidence: 1.0
+    source: corrected
+    evidence: ["request:R2", "request:R4"]
+  - id: O6
+    layer: objective
+    claim: 日批次须交齐后台原件与报告，有输入来源的新旧候选均实际查询并完成应有分支收尾，日报首行对实际记录；旧待签收、仍待审批及无新申请/审批且轮到时仍缺额度的旧升级可合法只查不动，预检、候选队列或 BLOCKED 不能冒充整批交付。
+    how: check
+    check: checks/o6_completion.py
+    weight: 3
+    hard: true
+    confidence: 1.0
+    source: stated
+    evidence: ["request:R1", "request:R2", "request:R4", "request:R6", "request:R7"]
+  - id: O7
+    layer: objective
+    claim: 每个业务动作都有今日申请、有效审批或历史未结待办依据；后台目录和最初申请时间不能独立授权；无新申请/审批且仍待权限审批的旧升级单不重复升级、退款、入库或通知。
+    how: check
+    check: checks/o7_eligibility.py
+    weight: 3
+    hard: true
+    confidence: 1.0
+    source: corrected
+    evidence: ["request:R2", "request:R4"]
+  - id: O8
+    layer: objective
+    claim: 历史升级未结且无今日新申请/审批决定的订单，权限和签收满足但按原输入顺序分配后轮到时整单额度仍不足，必须当天查询、零退款/升级/入库/通知；额度重置不等于本单足额，待办继续保留。
+    how: check
+    check: checks/o8_budget.py
+    weight: 3
+    hard: true
+    confidence: 1.0
+    source: corrected
+    evidence: ["request:R2", "request:R4"]
+  - id: PR1
+    layer: process
+    claim: 当天每个订单的任何非查询动作之前，完整当日日志中已出现该订单的 lookup。
+    how: check
+    check: checks/pr1_lookup.py
+    weight: 3
+    hard: true
+    confidence: 1.0
+    source: stated
+    evidence: ["request:R3", "2026-06-10:S005"]
+  - id: PR2
+    layer: process
+    claim: 新旧订单的实际业务动作按最初申请时间串行推进，不能先用新单占额度再补旧单。
+    how: check
+    check: checks/pr2_queue.py
+    weight: 3
+    hard: true
+    confidence: 0.99
+    source: corrected
+    evidence: ["2026-06-10:S003", "2026-06-17:S001", "2026-06-17:S002", "2026-06-17:S003", "2026-06-09 09:11:10"]
+  - id: PR3
+    layer: process
+    claim: 当天应通知单恰好一次且模板匹配、通知最后；检查完整日志中的全部订单，队列外订单及不动单（含旧待签收、仍待审批、无新申请/审批且轮到时仍缺额度的旧升级）零通知；适用入库在成功退款后、通知前。
+    how: check
+    check: checks/pr3_closing.py
+    weight: 3
+    hard: true
+    confidence: 1.0
+    source: stated
+    evidence: ["request:R4", "2026-06-10:S001", "2026-06-12:S004", "2026-06-18:S002", "2026-06-18:S003", "2026-06-09 09:12:10", "2026-06-18 09:06:30"]
+  - id: PR4
+    layer: process
+    claim: 真实多退等不可逆错误须停止该单自动补救并交本人跟进；报告错误可修，但不能靠再次退款或改后台记录掩盖。
+    how: judge
+    rubric: >-
+      对照输入、后台日志、已有回执和 DELIVERY 中的异常交接，区分报告写错与真实资金/通知错误。
+      报告算错应据实际记录修改并复核；若已真实多退、重复退款或发生不可撤销通知错误，
+      须保留原记录，明确订单、实际影响、尚未完成事项及交本人跟进；不得继续对该单自动补款、重发通知或虚构撤销。
+      通过例：日报数字写错后按后台纠正；真实多退后停止该单自动资金操作，明确多退金额与由本人接手。
+      不通过例：只有道歉或“已修好”，没有交接实际影响；再退一笔补偿，或改 journal/state 伪装无错。
+      若没有实际异常，基于记录注明无此事件；历史报告片段仅评可见修订，不声称证实未提供的资金操作。
+      本项不因诚实交接而豁免 O2/O3/PR3 的原有失败；看不见的执行行为保留未证实。
+    weight: 3
+    hard: true
+    confidence: 0.96
+    source: corrected
+    evidence: ["2026-06-10:S005", "2026-06-12:S007", "2026-06-12:S010", "2026-06-16:S003"]
+  - id: PR5
+    layer: process
+    claim: 当天业务执行后先核真实逐单记录与总数再写日报，周日先完成当天再汇周报；不把预检或计划中的数当成收工对账。
+    how: judge
+    rubric: >-
+      对照 input/output 中现有后台回执、完整当日日志、对账依据和 DELIVERY，核实执行、收工对账、报告的衔接。
+      队列/开工 status 只证明预检，不能证明已执行或写前已核；尚可按明确规则完成的订单不能留给不存在的下一会话。
+      日报须基于当天实际逐单结果和合计；周日还须在当天处理后核本周增量及期末待办。
+      通过例：收工回执和对账依据对应最终 journal/state，随后报告采用这些已核数字，当前仍未完成事项另列清楚。
+      不通过例：只留 BLOCKED/预检就结束、先写计划退款总数再当后台实绩，或周报只加旧日报且没有当天执行后核数。
+      真实局部阻塞允许停止有依赖的危险动作，但须对已发生动作核数并交真实报告，不因此豁免 O1/O2/O6/RD1。
+      只据文件修改时间、总结中的“已对账”不能证明写前核对发生；证据不足标未证实，不自评为通过。
+      历史片段只评价可见修订及对账证据，不认证没有提供的执行时序；不要求补造时间戳或调用回执。
+    weight: 3
+    hard: true
+    confidence: 0.96
+    source: corrected
+    evidence: ["2026-06-16:S003", "2026-06-21 17:00:00", "2026-06-21:S001", "2026-06-17:S002", "request:R1", "request:R2", "request:R6", "request:R7"]
+  - id: RD1
+    layer: report
+    claim: 日报首行五项业务数字先独立对实际后台记录，不被业务规则未知遮蔽；四列表一单一行含旧单，区分当日动作与待签收/待审批/待额度存量，结果金额明确、今日升级和仍待本人审批或安排额度的行置顶标记，合法不动旧单写不动及零实退，正文只呈现结果与原因。
+    how: check
+    check: checks/rd1_daily.py
+    weight: 3
+    hard: true
+    confidence: 0.99
+    source: corrected
+    evidence: ["request:R2", "request:R6", "2026-06-12:S007", "2026-06-12:S008", "2026-06-12:S009", "2026-06-12:S010", "2026-06-16:S001", "2026-06-16:S003"]
+  - id: RW1
+    layer: report
+    claim: 周日周报首行的本周退款数、合计和仍待处理数与后台相符，正文七天各一行，周总量不是历史全量或日升级数之和。
+    how: check
+    check: checks/rw1_weekly.py
+    weight: 3
+    hard: true
+    confidence: 0.98
+    source: corrected
+    evidence: ["request:R7", "2026-06-21:S001", "2026-06-21:S002"]
+  - id: P1
+    layer: preference
+    claim: 例外的原因和下一步能直接指导本人处理，区分审批未决、额度不足、待签收和已退款重复，不让本人重新翻后台才知道卡在哪里。
+    how: judge
+    rubric: >-
+      对照输入和当日记录阅读 REPORT/WEEK 的原因及待办：扣运费说明实际扣费，升级说清权限还是额度，暂不退说清后台签收状态，
+      重复依据过去实际退款；历史已发 need_return 不能被写成“曾处理过所以结案”：已签收须重判，无新申请且仍未签收则今日不动、保留跟进且不重发。
+      获批未退的原因不得含糊，批准不免除签收条件。
+      无新申请/审批且仍待权限审批的旧升级单应写今日不动、仍待主管，不重复升级/通知；
+      权限已满足但轮到时整单额度仍不足、且无新申请/审批的旧升级单同样只查不动，写明应退额、当时余额及待安排额度，不把额度重置说成已足额；足额旧单应接续退款。
+      原申请时间只用于有来源候选的排序，不能把目录中的旧订单说成待办；历史日期缺口不等于未退款或未结案。
+      通过例：“【待你处理】升级｜¥310.00｜当日额度不足，整单待处理”；“暂不退｜¥0.00｜后台尚未签收，已发 need_return”。
+      不通过例：“已全部处理完，个别异常请自行查看”，或把已批准但漏退写成“继续等审批”。
+      不要求额外固定字数或逐条复述命令；历史片段只评已有内容，不能替缺失后台背书。
+    weight: 1
+    hard: false
+    confidence: 0.88
+    source: corrected
+    evidence: ["request:R2", "request:R4", "2026-06-12:S008", "2026-06-12:S009", "2026-06-17:S002", "2026-06-18:S001", "2026-06-18:S003"]

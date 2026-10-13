@@ -35,8 +35,20 @@ def test_week_sample_is_valid_and_every_probe_fails_some_day_rubric(home):
             assert chk["passed"] < chk["total"], st["id"]
 
 
-def _scripted_agent(break_rule_on_day: dict):
-    """An 'agent' that builds a two-stage skill, then each day does what policy.py says (optionally breaking a rule)."""
+def test_reference_reports_open_the_way_the_reports_she_kept_do(home):
+    # S6 and her records say the first line starts with the number of requests; a reference that said
+    # "handled N orders" instead made a built verifier reject it, and that was the sample's fault
+    s = bench.load(WEEK)
+    kept = [text.splitlines()[0] for name, text in s["workdir"].items() if name.endswith("/REPORT.md")]
+    assert kept and all(line.startswith("今日 ") and " 条申请：" in line for line in kept)
+    for d in range(1, 8):
+        n = len(list(csv.DictReader(io.StringIO(bench.day_context(s, d)["requests.csv"]))))
+        assert bench.day_reference(s, d)["REPORT.md"].startswith(f"今日 {n} 条申请：退款 "), d
+
+
+def _scripted_agent(break_rule_on_day: dict, skip_days: tuple = ()):
+    """An 'agent' that builds a two-stage skill, then each day does what policy.py says (optionally breaking a rule).
+    On skip_days its first session blocks and nothing is done."""
     calls = []
 
     def fake(kind, task, cwd, cfg=None, add_dirs=()):
@@ -57,6 +69,9 @@ def _scripted_agent(break_rule_on_day: dict):
             (d / "verifier.yaml").write_text(yaml.safe_dump({"skill": "refunds", "version": 1, "items": [
                 {"id": "O1", "layer": "objective", "claim": "a report exists", "how": "check", "check": "checks/has_report.py", "hard": True,
                  "source": "stated", "evidence": ["request:R1"]}]}), encoding="utf-8")
+        elif kind == "execute-refunds-s1":
+            if sorted(p.name for p in (cwd.parent.parent).glob("week-d*")).index(cwd.parent.name) + 1 in skip_days:
+                (cwd / "output" / "BLOCKED.md").write_text("a rule is unclear; stopping", encoding="utf-8")
         elif kind == "execute-refunds-s2":
             inp = cwd / "input"
             base = json.loads((inp / "orders.json").read_text(encoding="utf-8"))
@@ -69,12 +84,12 @@ def _scripted_agent(break_rule_on_day: dict):
             subprocess.run([sys.executable, "-B", "input/env.py", "status"], cwd=cwd, check=True, capture_output=True)
             for cmd in policy.commands(steps, base["orders"], rule):
                 subprocess.run([sys.executable, "-B", "input/env.py", *cmd], cwd=cwd, check=True, capture_output=True)
-            (cwd / "output" / "REPORT.md").write_text(policy.report(steps), encoding="utf-8")
+            (cwd / "output" / "REPORT.md").write_text(policy.report(steps, len(reqs)), encoding="utf-8")
             if day == 7:
                 st = json.loads((cwd / "output" / "state.json").read_text(encoding="utf-8"))
                 rejected = {o for o, ts in st["notified"].items() if "rejected" in ts}
                 pend = sorted(o for o in st["escalated"] if o not in st["refunds"] and o not in rejected)
-                assert len(list((inp / "history").glob("d*.md"))) == 6  # the run's own earlier reports are handed back each day
+                assert len(list((inp / "history").glob("d*.md"))) == 6 - len(skip_days)  # the run's own earlier reports are handed back each day
                 (cwd / "output" / "WEEK.md").write_text(policy.week_report([], st, pend), encoding="utf-8")
         return agent.Result(True, "", 0.0, cwd)
 
@@ -108,3 +123,24 @@ def test_a_bad_monday_is_judged_on_its_own_and_carries_into_tuesday(home, tmp_pa
     assert calls.count("iterate-refunds") == rep["days"].__len__() - rep["filled"]  # one revision after each failed day (none after Sunday)
     fb = (tmp_path / "h" / "feedback" / "day-1" / "checklist.json").read_text(encoding="utf-8")
     assert "R2" in fb and "S1" not in fb and "按申请时间" not in fb  # she says what was wrong, not the hidden rule
+
+
+def test_a_skipped_day_leaves_its_inbox_for_the_next_day(home, tmp_path, monkeypatch):
+    # Thursday: the first session blocks and nothing is done. Thursday's requests and the supervisor's rejection
+    # must still be waiting on Friday; in a real run they vanished, and Friday was judged against rules that
+    # could not know about them.
+    fake, calls = _scripted_agent({}, skip_days=(4,))
+    monkeypatch.setattr(agent, "run", fake)
+    rep = bench.run_week(WEEK, judge=False, home=tmp_path / "h")
+    days = rep["days"]
+    assert days[3]["filled"] is False and days[3]["skipped"] and days[3]["blocked"]
+    assert not any(d.get("skipped") for i, d in enumerate(days) if i != 3)
+    runs = tmp_path / "h" / "runs"
+    friday = list(csv.DictReader(io.StringIO((runs / "week-d5" / "day-input" / "requests.csv").read_text(encoding="utf-8"))))
+    assert [r["requested_at"][:10] for r in friday] == ["2026-06-25"] * 5 + ["2026-06-26"] * 5
+    assert "W111,rejected" in (runs / "week-d5" / "day-input" / "approvals.csv").read_text(encoding="utf-8")  # Friday has none of its own
+    assert "昨天什么都没有处理" in (runs / "week-d5" / "day-input" / "README.md").read_text(encoding="utf-8")
+    saturday = list(csv.DictReader(io.StringIO((runs / "week-d6" / "day-input" / "requests.csv").read_text(encoding="utf-8"))))
+    assert {r["requested_at"][:10] for r in saturday} == {"2026-06-27"}  # handled on Friday, so not carried again
+    assert [d["filled"] for d in days] == [True, True, True, False, True, True, True]
+    assert calls.count("execute-refunds-s2") == 6 and "no, nothing was done" in (tmp_path / "h" / "bench-report.md").read_text(encoding="utf-8")
