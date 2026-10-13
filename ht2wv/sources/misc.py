@@ -46,7 +46,7 @@ def browsers(since: float, cfg: dict | None = None, only: tuple[str, ...] | None
             # query strings routinely carry tokens and search terms: keep host + path only
             evs.append({"t": round(vt / 1e6 - _CHROME_EPOCH, 3), "src": name, "k": "visit", "browser": name,
                         "url": f"{u.scheme}://{u.netloc}{u.path}"[:300], "title": redact(title or "", extra)[:200]})
-        store.replace_source(name, evs)
+        store.replace_source(name, evs, since)
         out[name] = len(evs)
     return out
 
@@ -65,7 +65,7 @@ def git(since: float, cfg: dict | None = None, repos: list[str] | None = None) -
             sha, at, subject = head.split("\x1f", 2)
             evs.append({"t": float(at), "src": "git", "k": "commit", "repo": repo.name, "sha": sha[:10],
                         "subject": subject, "files": [f for f in files.split("\n") if f][:30]})
-    store.replace_source("git", evs)
+    store.replace_source("git", evs, since)
     return len(evs)
 
 
@@ -127,7 +127,9 @@ def chat_export(path: str, me: str, name: str = "wx", cfg: dict | None = None) -
                 continue
             evs.append({"t": t, "src": name, "k": "msg", "peer": redact(str(pr), extra), "me": sender.strip() == me,
                         "text": redact(str(text).strip()[:cap], extra)})
-    store.replace_source(name, evs)
+    # The export defines a snapshot only over its imported [min t, max t] span.
+    if evs:
+        store.replace_source(name, evs, min(e["t"] for e in evs), max(e["t"] for e in evs))
     return len(evs)
 
 
@@ -156,5 +158,7 @@ def timelog(path: str, cfg: dict | None = None) -> int:
                 if t:
                     evs.append({"t": t, "src": "timelog", "k": "win", "app": r.get("app") or r.get("process") or r.get("name") or "",
                                 "title": redact(r.get("title") or r.get("activity") or r.get("notes") or "", extra)})
-    store.replace_source("timelog", evs)
+    # The export defines a snapshot only over its imported [min t, max t] span.
+    if evs:
+        store.replace_source("timelog", evs, min(e["t"] for e in evs), max(e["t"] for e in evs))
     return len(evs)

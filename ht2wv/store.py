@@ -26,6 +26,8 @@ kinds
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 import threading
 import time
 from datetime import datetime
@@ -89,23 +91,72 @@ def days() -> list[str]:
     return sorted(d.name for d in root.iterdir() if (d / "events.jsonl").exists()) if root.exists() else []
 
 
-def replace_source(src: str, events: Iterable[dict]) -> dict[str, int]:
-    """Re-importable sources (logs, history) overwrite their previous rows so collect is idempotent."""
-    by_day: dict[str, list[dict]] = {}
+def replace_source(src: str, events: Iterable[dict], since: float, until: float | None = None) -> dict[str, int]:
+    """Replace a source's inclusive window, and re-snapshot all its undated rows.
+
+    The default upper bound includes both now and the latest supplied event.
+    An explicit upper bound must cover every supplied event.
+    """
+    events = list(events)
+    latest = max((ev["t"] for ev in events), default=since)
+    if until is None:
+        until = max(time.time(), latest)
+    if until < since or until < latest:
+        raise ValueError("until must be >= since and every new event's t")
+
+    by_day: dict[str, list[tuple[float, str]]] = {}
     for ev in events:
-        by_day.setdefault(day_of(ev["t"]), []).append(ev)
-    counts = {}
-    for day, evs in by_day.items():
-        p = config.day_dir(day) / "events.jsonl"
+        if ev.get("undated") is True or since <= ev["t"] <= until:
+            line = json.dumps(ev, ensure_ascii=False, sort_keys=True) + "\n"
+            by_day.setdefault(day_of(ev["t"]), []).append((ev["t"], line))
+    counts = {day: len(evs) for day, evs in sorted(by_day.items())}
+    first_day, last_day = day_of(since), day_of(until)
+    root = config.home() / "traces"
+    src_hint = json.dumps(src, ensure_ascii=False)[1:-1]
+    # Undated rows can be pinned outside the window, so inspect every existing day.
+    for day in sorted(set(days()) | set(by_day)):
+        full_day = first_day <= day <= last_day or day in by_day
+        p = root / day / "events.jsonl"
         keep = []
+        removed = False
         if p.exists():
-            with open(p, encoding="utf-8") as f:
-                keep = [ln for ln in f if f'"src": "{src}"' not in ln]
-        with open(p, "w", encoding="utf-8") as f:
-            f.writelines(keep)
-            for ev in sorted(evs, key=lambda e: e["t"]):
-                f.write(json.dumps(ev, ensure_ascii=False) + "\n")
-        counts[day] = len(evs)
+            with open(p, encoding="utf-8", newline="") as f:
+                for line in f:
+                    # Unicode escapes can hide source values or the undated key.
+                    unicode_escape = "\\u" in line
+                    if ((src not in line and src_hint not in line and not unicode_escape
+                         and not ("/" in src and "\\/" in line))
+                            or (not full_day and "undated" not in line and not unicode_escape)):
+                        keep.append(line)
+                        continue
+                    try:
+                        row = json.loads(line)
+                    except json.JSONDecodeError:
+                        keep.append(line)
+                        continue
+                    if (isinstance(row, dict) and row.get("src") == src
+                            and (row.get("undated") is True
+                                 or (full_day and since <= row["t"] <= until))):
+                        removed = True
+                    else:
+                        keep.append(line)
+        evs = by_day.get(day, [])
+        if not removed and not evs:
+            continue
+        p.parent.mkdir(parents=True, exist_ok=True)
+        temp = None
+        try:
+            with tempfile.NamedTemporaryFile("w", encoding="utf-8", newline="",
+                                             dir=p.parent, delete=False) as f:
+                temp = Path(f.name)
+                f.writelines(keep)
+                if keep and evs and not keep[-1].endswith(("\n", "\r")):
+                    f.write("\n")
+                f.writelines(line for _, line in sorted(evs))
+            os.replace(temp, p)
+        finally:
+            if temp is not None:
+                temp.unlink(missing_ok=True)
     return counts
 
 

@@ -19,8 +19,14 @@ def collect_allowed(since: float, cfg: dict | None = None) -> dict:
                 report[sid] = {"ok": False, "error": f"{type(e).__name__}: {e}"[:300]}
 
     # agent logs first: git discovery reads the working directories they mention
+    def collect_agent(name):
+        result = agents.collect(since, cfg, only=(name,))
+        if result.get("parse"):
+            report.setdefault("parse", {}).update(result["parse"])
+        return result.get(name, 0)
+
     for name in ("claude", "codex"):
-        step(name, lambda name=name: agents.collect(since, cfg, only=(name,)).get(name, 0))
+        step(name, lambda name=name: collect_agent(name))
     for name in cfg["sources"]["browsers"]:
         step(name, lambda name=name: misc.browsers(since, cfg, only=(name,)).get(name, 0))
     step("shell", lambda: extra.shell_local(since, cfg))

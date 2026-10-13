@@ -41,11 +41,32 @@ def _blocks_text(content) -> str:
     return ""
 
 
-def claude_code(root: Path, since: float, cap: int, extra) -> list[dict]:
+def _prompt_drop_reason(text: str) -> str | None:
+    if not text:
+        return "empty"
+    m = _NOISE.match(text)
+    if m:
+        kind = m.group(2) or {"# agents.md instructions": "agents_md",
+                              "this session is being continued from": "continuation",
+                              "caveat: ": "caveat"}[m.group(1).lower()]
+        return f"noise:{kind.lower()}"
+    return None
+
+
+def _drop(file_stats: dict, reason: str):
+    dropped = file_stats["dropped"]
+    dropped[reason] = dropped.get(reason, 0) + 1
+
+
+def claude_code(root: Path, since: float, cap: int, extra, stats: dict | None = None) -> list[dict]:
+    """Optionally fill stats keyed by scanned file path, counting user turns before deduplication."""
     evs = []
     for f in root.glob("*/*.jsonl"):
         if f.stat().st_mtime < since:
             continue
+        file_stats = {"user_turns": 0, "prompts": 0, "dropped": {}}
+        if stats is not None:
+            stats[str(f)] = file_stats
         sid = f.stem[:8]
         tools: list[str] = []
         last_text, last_t = "", None
@@ -59,7 +80,12 @@ def claude_code(root: Path, since: float, cap: int, extra) -> list[dict]:
 
         for d in store.iter_jsonl(f):
             t = _ts(d.get("timestamp"))
+            is_user = d.get("type") == "user"
+            if is_user:
+                file_stats["user_turns"] += 1
             if t is None or t < since or d.get("isSidechain"):
+                if is_user:
+                    _drop(file_stats, "invalid_timestamp" if t is None else "before_since" if t < since else "sidechain")
                 continue
             msg = d.get("message") if isinstance(d.get("message"), dict) else {}
             content = msg.get("content")
@@ -78,35 +104,50 @@ def claude_code(root: Path, since: float, cap: int, extra) -> list[dict]:
                             if "doesn't want to proceed" in body or "user rejected" in body.lower() or "was rejected" in body:
                                 evs.append({"t": t, "src": "claude", "k": "deny", "agent": "claude", "session": sid,
                                             "tool": tools[-1] if tools else "?", "text": _clean(body, 300, extra)})
-                text = _blocks_text(content)
-                if not text.strip() or _NOISE.match(text):
+                text = _TAGS.sub("", _blocks_text(content)).strip()
+                has_tool_result = isinstance(content, list) and any(b.get("type") == "tool_result" for b in content)
+                reason = _prompt_drop_reason(text)
+                if reason:
+                    _drop(file_stats, "tool_result" if reason == "empty" and has_tool_result else reason)
                     continue
                 if "[Request interrupted by user" in text:
                     flush()
                     evs.append({"t": t, "src": "claude", "k": "abort", "agent": "claude", "session": sid})
+                    _drop(file_stats, "abort")
                     continue
-                if isinstance(content, list) and any(b.get("type") == "tool_result" for b in content):
+                if has_tool_result:
+                    _drop(file_stats, "tool_result")
                     continue
                 flush()
                 evs.append({"t": t, "src": "claude", "k": "prompt", "agent": "claude", "session": sid,
                             "cwd": d.get("cwd", ""), "text": _clean(text, cap, extra)})
+                file_stats["prompts"] += 1
         flush()
     return evs
 
 
-def codex(root: Path, since: float, cap: int, extra) -> list[dict]:
+def codex(root: Path, since: float, cap: int, extra, stats: dict | None = None) -> list[dict]:
+    """Optionally fill stats keyed by scanned file path, counting user turns before deduplication."""
     evs = []
     for f in root.rglob("*.jsonl"):
         if f.stat().st_mtime < since:
             continue
+        file_stats = {"user_turns": 0, "prompts": 0, "dropped": {}}
+        if stats is not None:
+            stats[str(f)] = file_stats
         sid, cwd = f.stem[-8:], ""
         tools: list[str] = []
         for d in store.iter_jsonl(f):
             t = _ts(d.get("timestamp"))
             p = d.get("payload") if isinstance(d.get("payload"), dict) else {}
+            is_user = d.get("type") == "response_item" and p.get("type") == "message" and p.get("role") == "user"
+            if is_user:
+                file_stats["user_turns"] += 1
             if d.get("type") in ("session_meta", "turn_context"):
                 cwd = p.get("cwd", cwd)
             if t is None or t < since:
+                if is_user:
+                    _drop(file_stats, "invalid_timestamp" if t is None else "before_since")
                 continue
             base = {"t": t, "src": "codex", "agent": "codex", "session": sid}
             pt = p.get("type")
@@ -114,9 +155,20 @@ def codex(root: Path, since: float, cap: int, extra) -> list[dict]:
                 if pt in ("function_call", "custom_tool_call"):
                     tools.append(p.get("name", "?"))
                 elif pt == "message" and p.get("role") == "user":
-                    text = _blocks_text(p.get("content"))
-                    if text.strip() and not _NOISE.match(text):
-                        evs.append({**base, "k": "prompt", "cwd": cwd, "text": _clean(text, cap, extra)})
+                    content = p.get("content")
+                    text = _TAGS.sub("", _blocks_text(content)).strip()
+                    reason = _prompt_drop_reason(text)
+                    if reason:
+                        has_tool_result = isinstance(content, list) and any(b.get("type") == "tool_result" for b in content)
+                        _drop(file_stats, "tool_result" if reason == "empty" and has_tool_result else reason)
+                        continue
+                    if "[Request interrupted by user" in text:
+                        evs.append({**base, "k": "abort"})
+                        tools = []
+                        _drop(file_stats, "abort")
+                        continue
+                    evs.append({**base, "k": "prompt", "cwd": cwd, "text": _clean(text, cap, extra)})
+                    file_stats["prompts"] += 1
             elif d.get("type") == "event_msg":
                 if pt == "task_complete":
                     evs.append({**base, "k": "reply", "text": _clean(p.get("last_agent_message") or "", cap // 2, extra), "tools": tools[:40]})
@@ -137,15 +189,17 @@ def dedupe(events: list[dict]) -> list[dict]:
     return out
 
 
-def collect(since: float, cfg: dict | None = None, only: tuple[str, ...] = ("claude", "codex")) -> dict[str, int]:
+def collect(since: float, cfg: dict | None = None, only: tuple[str, ...] = ("claude", "codex")) -> dict:
     cfg = cfg or config.load()
     s = cfg["sources"]
     extra = cfg["privacy"]["redact_extra"]
-    out = {}
+    out = {"parse": {}}
     for name, fn, key in (("claude", claude_code, "claude_dir"), ("codex", codex, "codex_dir")):
         root = config.expand(s[key])
         if name in only and root.exists():
-            evs = dedupe(fn(root, since, s["msg_max_chars"], extra))
-            store.replace_source(name, evs)
+            stats = {}
+            evs = dedupe(fn(root, since, s["msg_max_chars"], extra, stats=stats))
+            store.replace_source(name, evs, since)
             out[name] = len(evs)
+            out["parse"][name] = stats
     return out

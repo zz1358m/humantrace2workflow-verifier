@@ -13,12 +13,14 @@ verifier.yaml
     - id, layer (objective | style | preference), claim
       how: check   -> check: checks/x.py   (python x.py --input DIR --output DIR; last stdout line = {"pass": bool, "detail": str})
       how: judge   -> rubric: what a reviewer should look for
+      cases: [<case id>, ...] (optional, judge only): existing reject cases this item is expected to fail
       weight, hard, confidence, source (observed | stated | corrected | hypothesized), evidence: ["<day>:<signal id>"]
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -80,6 +82,11 @@ def lint(skill_dir: Path, file: str = "verifier.yaml") -> list[str]:
                 errs.append(f"{iid}: judge item needs a rubric")
         else:
             errs.append(f"{iid}: how must be check or judge")
+        if "cases" in it:
+            if it.get("how") != "judge":
+                errs.append(f"{iid}: cases is only allowed on how: judge items")
+            if not isinstance(it["cases"], list) or not all(isinstance(cid, str) for cid in it["cases"]):
+                errs.append(f"{iid}: cases must be a list of strings")
         src = it.get("source")
         if src not in SOURCES:
             errs.append(f"{iid}: source must be one of {SOURCES}")
@@ -93,9 +100,11 @@ def lint(skill_dir: Path, file: str = "verifier.yaml") -> list[str]:
 
 
 def _run_check(skill_dir: Path, script: str, inp: Path, out: Path) -> tuple[bool | None, str]:
+    env = os.environ.copy()
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
     try:
-        r = subprocess.run([sys.executable, str(skill_dir / script), "--input", str(inp), "--output", str(out)],
-                           capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
+        r = subprocess.run([sys.executable, "-B", str(skill_dir / script), "--input", str(inp), "--output", str(out)],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120, env=env)
     except subprocess.TimeoutExpired:
         return False, "check timed out"
     lines = [ln for ln in r.stdout.strip().splitlines() if ln.strip()]

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import tempfile
 import time
 from pathlib import Path
 
@@ -40,17 +41,53 @@ def lint(name: str, proposed: bool = False) -> dict:
     errs = verifier.lint(d, file)
     rows = []
     if not any("unreadable" in e for e in errs):
-        has_judge = any(i.get("how") == "judge" for i in verifier.load(d, file)["items"])
-        for c in cases(name):
+        labelled = cases(name)
+        by_id = {c["id"]: c for c in labelled}
+        named_judges = {c["id"]: [] for c in labelled}
+        for it in verifier.load(d, file)["items"]:
+            if it.get("how") != "judge" or "cases" not in it:
+                continue
+            ids = it["cases"]
+            if not isinstance(ids, list) or not all(isinstance(cid, str) for cid in ids):
+                continue  # verifier.lint reports malformed cases fields
+            for cid in ids:
+                if cid not in by_id:
+                    errs.append(f"{it['id']}: cases names unknown case {cid}")
+                elif by_id[cid]["label"] != "reject":
+                    errs.append(f"{it['id']}: case {cid} in cases must be labelled reject")
+                else:
+                    named_judges[cid].append(it["id"])
+        for c in labelled:
             rep = verifier.run(d, c["dir"] / "output", c["dir"] / "input", file=file)
-            failed = [r["id"] for r in rep["items"] if r["pass"] is False]
+            failed = [r["id"] for r in rep["items"] if r["how"] == "check" and r["pass"] is False]
             broken = [r["id"] for r in rep["items"] if r["how"] == "check" and r["pass"] is None]
             errs += [f"case {c['id']}: check {b} crashed or printed no verdict" for b in broken]
             if c["label"] == "accept" and failed:
                 errs.append(f"case {c['id']}: the person kept this output but checks {failed} fail on it")
-            if c["label"] == "reject" and not failed and not has_judge:
-                errs.append(f"case {c['id']}: the person rejected this output but nothing in the verifier can fail it")
-            rows.append({"case": c["id"], "label": c["label"], "checks_verdict": rep["verdict"], "failed": failed, "pending": rep["pending"]})
+            named = named_judges[c["id"]]
+            coverage = "check:" + ",".join(failed) if failed else "none"
+            verdict = rep["verdict"]
+            depends_on = []
+            if c["label"] == "accept" and verdict == "reject":
+                errs.append(f"case {c['id']}: the person kept this output but the verifier verdict is reject")
+            if c["label"] == "reject":
+                if not failed and not named:
+                    errs.append(f"case {c['id']}: the person rejected this output but nothing in the verifier can fail it; "
+                                "a failing check or a judge item explicitly naming it in cases is required")
+                if not failed and named:
+                    coverage = "judge-named:" + ",".join(named)
+                    depends_on = named
+                    judgments = {iid: {"pass": False, "detail": f"expected failure for case {c['id']}; judge still pending"}
+                                 for iid in named}
+                    judged = verifier.run(d, c["dir"] / "output", c["dir"] / "input", judgments=judgments, file=file)
+                    verdict = judged["verdict"]
+                    if verdict != "reject":
+                        errs.append(f"case {c['id']}: rejection depends on pending judge items {named}, "
+                                    f"but with those items failed the verifier verdict is {verdict}, not reject")
+                elif verdict == "accept":
+                    errs.append(f"case {c['id']}: the person rejected this output but the verifier verdict is accept")
+            rows.append({"case": c["id"], "label": c["label"], "checks_verdict": rep["verdict"], "failed": failed,
+                         "pending": rep["pending"], "coverage": coverage, "verdict": verdict, "verdict_depends_on": depends_on})
     return {"skill": name, "file": file, "ok": not errs, "errors": errs, "cases": rows}
 
 
@@ -118,9 +155,21 @@ def _tree_hash(d: Path, names: tuple[str, ...]) -> str:
     for n in names:
         p = d / n
         for f in ([p] if p.is_file() else sorted(p.rglob("*")) if p.exists() else []):
-            if f.is_file():
-                h.update(str(f.relative_to(d)).encode())
+            if f.is_file() and "__pycache__" not in f.relative_to(d).parts and f.suffix != ".pyc":
+                h.update(f.relative_to(d).as_posix().encode())
                 h.update(f.read_bytes())
+    return h.hexdigest()
+
+
+def _frozen_hash(d: Path) -> str:
+    """Freeze verifier inputs, including the person-level style outside the skill."""
+    h = hashlib.sha256(_tree_hash(d, ("verifier.yaml", "checks", "cases")).encode())
+    v = yaml.safe_load((d / "verifier.yaml").read_text(encoding="utf-8")) or {}
+    if v.get("inherits"):
+        style = (d / v["inherits"]).resolve()
+        if style.exists():
+            h.update(b"\0inherited-style\0")
+            h.update(style.read_bytes())
     return h.hexdigest()
 
 
@@ -136,7 +185,7 @@ def _round(name: str, ids: list[dict], rdir: Path, cfg: dict, judge: bool) -> fl
 
 def optimize(name: str, rounds: int = 2, judge: bool = True, cfg: dict | None = None) -> dict:
     """Fix the verifier, search over workflows. A candidate SKILL.md is kept only if it does not
-    lose on held-out cases; the improving agent never sees those."""
+    lose on held-out cases; its improvement workspace contains only training runs."""
     cfg = cfg or config.load()
     d = skill_dir(name)
     cs = [c for c in cases(name) if (c["dir"] / "input").is_dir()]
@@ -145,28 +194,62 @@ def optimize(name: str, rounds: int = 2, judge: bool = True, cfg: dict | None = 
         raise SystemExit("no cases with input/ to replay")
     train, val = (inputs[0::2], inputs[1::2]) if len(inputs) > 1 else (inputs, inputs)
     run = _new_run("optimize", name)
-    frozen = _tree_hash(d, ("verifier.yaml", "checks", "cases"))
+    frozen = _frozen_hash(d)
     log = {"skill": name, "train": [c["id"] for c in train], "val": [c["id"] for c in val], "rounds": []}
     best_val = _round(name, val, run / "r0-val", cfg, judge)
     log["baseline_val"] = best_val
     for r in range(1, rounds + 1):
         tr = _round(name, train, run / f"r{r}-train", cfg, judge)
         backup = (d / "SKILL.md").read_text(encoding="utf-8")
-        rel = (run / f"r{r}-train").relative_to(config.home()).as_posix()
-        agent.run(f"improve-{name}", agent.render("improve", name=name, round_dir=rel), config.home(), cfg)
+        sandbox = Path(tempfile.mkdtemp(prefix="ht2wv-improve-"))
+        try:
+            if sandbox.resolve().is_relative_to(config.home().resolve()):
+                raise ValueError("improve sandbox must be outside the data root")
+            export(name, sandbox / "skill")
+            if (d / "CHANGELOG.md").exists():
+                shutil.copyfile(d / "CHANGELOG.md", sandbox / "skill" / "CHANGELOG.md")
+            for c in train:
+                source = run / f"r{r}-train" / c["id"]
+                dest = sandbox / "train" / c["id"]
+                dest.mkdir(parents=True)
+                for subdir in ("input", "output"):
+                    shutil.copytree(source / subdir, dest / subdir)
+                shutil.copyfile(source / "report.json", dest / "report.json")
+            agent.run(f"improve-{name}", agent.render("improve", name=name), sandbox, cfg)
+            audit = run / f"r{r}-improve"
+            audit.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(sandbox / "skill" / "SKILL.md", audit / "SKILL.md")
+            shutil.copyfile(sandbox / "skill" / "SKILL.md", d / "SKILL.md")
+            if (sandbox / "skill" / "CHANGELOG.md").exists():
+                shutil.copyfile(sandbox / "skill" / "CHANGELOG.md", d / "CHANGELOG.md")
+        finally:
+            shutil.rmtree(sandbox)
         entry = {"round": r, "train": tr}
-        if _tree_hash(d, ("verifier.yaml", "checks", "cases")) != frozen:
+        if _frozen_hash(d) != frozen:
             entry["status"] = "void: the verifier was modified"  # we cannot trust anything from this round
             log["rounds"].append(entry)
             (d / "SKILL.md").write_text(backup, encoding="utf-8")
             break
-        v = _round(name, val, run / f"r{r}-val", cfg, judge)
-        entry["val"] = v
-        if v >= best_val:
-            best_val, entry["status"] = v, "kept"
-        else:
+        lines = (d / "SKILL.md").read_text(encoding="utf-8").splitlines()
+        try:
+            if not lines or lines[0].strip() != "---":
+                raise ValueError("missing frontmatter")
+            end = lines.index("---", 1)
+            frontmatter = yaml.safe_load("\n".join(lines[1:end]))
+            valid_name = isinstance(frontmatter, dict) and frontmatter.get("name") == name
+        except (ValueError, yaml.YAMLError):
+            valid_name = False
+        if not valid_name:
             (d / "SKILL.md").write_text(backup, encoding="utf-8")
-            entry["status"] = "reverted"
+            entry["status"] = f"reverted: SKILL.md needs frontmatter with name {name}"
+        else:
+            v = _round(name, val, run / f"r{r}-val", cfg, judge)
+            entry["val"] = v
+            if v >= best_val:
+                best_val, entry["status"] = v, "kept"
+            else:
+                (d / "SKILL.md").write_text(backup, encoding="utf-8")
+                entry["status"] = "reverted"
         log["rounds"].append(entry)
         (run / "log.json").write_text(json.dumps(log, ensure_ascii=False, indent=1), encoding="utf-8")
         if agent.spent() >= cfg["agent"]["budget_usd"]:
