@@ -199,7 +199,7 @@ def collect(since: float, cfg: dict | None = None, only: tuple[str, ...] = ("cla
         if name in only and root.exists():
             stats = {}
             evs = dedupe(fn(root, since, s["msg_max_chars"], extra, stats=stats))
-            store.replace_source(name, evs)
+            store.replace_source(name, evs, since)
             out[name] = len(evs)
             out["parse"][name] = stats
     return out

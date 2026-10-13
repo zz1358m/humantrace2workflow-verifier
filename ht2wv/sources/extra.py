@@ -54,7 +54,7 @@ def shell_local(since: float, cfg: dict) -> int:
         if f.exists():
             evs += parse_history(f.read_text(encoding="utf-8", errors="replace"), f.stat().st_mtime, "local", since,
                                  cfg["sources"]["shell_undated_tail"], cfg["privacy"]["redact_extra"])
-    store.replace_source("shell@local", evs)
+    store.replace_source("shell@local", evs, since)
     return len(evs)
 
 
@@ -78,7 +78,7 @@ def shell_remote(host: str, since: float, cfg: dict) -> dict:
         except ValueError:
             mtime = time.time()
         evs += parse_history(body, mtime, host, since, cfg["sources"]["shell_undated_tail"], cfg["privacy"]["redact_extra"])
-    store.replace_source(f"shell@{host}", evs)
+    store.replace_source(f"shell@{host}", evs, since)
     return {"ok": True, "commands": len(evs)}
 
 
@@ -109,7 +109,7 @@ def agents_remote(host: str, since: float, cfg: dict, max_bytes: int = 300_000_0
             evs = agents.dedupe(fn(root, since, s["msg_max_chars"], extra, stats=stats))
             for e in evs:
                 e["src"], e["host"] = f"{kind}@{host}", host
-            store.replace_source(f"{kind}@{host}", evs)
+            store.replace_source(f"{kind}@{host}", evs, since)
             out[kind] = len(evs)
             out["parse"][kind] = stats
     return out
@@ -122,7 +122,7 @@ def recent_files(since: float) -> int:
         t = f.stat().st_mtime
         if t >= since:
             evs.append({"t": round(t, 3), "src": "recent", "k": "open", "name": f.stem})
-    store.replace_source("recent", evs)
+    store.replace_source("recent", evs, since)
     return len(evs)
 
 
@@ -138,7 +138,7 @@ def docs(since: float, cfg: dict) -> int:
                     continue
                 if st.st_mtime >= since:
                     evs.append({"t": round(st.st_mtime, 3), "src": "docs", "k": "file", "op": "modified", "path": str(f), "size": st.st_size})
-    store.replace_source("docs", evs)
+    store.replace_source("docs", evs, since)
     return len(evs)
 
 

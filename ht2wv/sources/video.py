@@ -51,5 +51,6 @@ def ingest(path: str, start: float | None = None, every_s: float = 2.0, min_dist
                     events.append({"t": round(t, 3), "src": f"{SRC}:{tag}", "k": "shot", "path": f"shots/{name}", "reason": "scene"})
         i += 1
     cap.release()
-    store.replace_source(f"{SRC}:{tag}", events)
+    # Replace the decoded video span, including intervals with no kept keyframes.
+    store.replace_source(f"{SRC}:{tag}", events, round(start, 3), round(start + i / fps, 3))
     return len(events)

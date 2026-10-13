@@ -212,7 +212,7 @@ def _collector_config(tmp_path):
 def test_collect_keeps_integer_counts_and_exposes_parse_stats(tmp_path, monkeypatch):
     cfg, paths = _collector_config(tmp_path)
     stored = {}
-    monkeypatch.setattr(store, "replace_source", lambda source, events: stored.update({source: events}))
+    monkeypatch.setattr(store, "replace_source", lambda source, events, since, until=None: stored.update({source: events}))
     report = agents.collect(0, cfg)
     assert report["claude"] == report["codex"] == 1
     assert report["parse"] == {
@@ -249,7 +249,7 @@ def test_agents_remote_passes_through_parse_stats(tmp_path, monkeypatch):
     monkeypatch.setattr(extra.subprocess, "run", lambda *args, **kwargs: SimpleNamespace(
         stdout=archive.getvalue(), stderr=b"", returncode=0))
     stored = {}
-    monkeypatch.setattr(store, "replace_source", lambda source, events: stored.update({source: events}))
+    monkeypatch.setattr(store, "replace_source", lambda source, events, since, until=None: stored.update({source: events}))
     report = extra.agents_remote("testhost", 0, config.load())
     assert report["ok"] and report["claude"] == report["codex"] == 1
     for kind in ("claude", "codex"):

@@ -7,7 +7,7 @@ They also ask a coding agent for a draft and push back on it.
 from __future__ import annotations
 
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from . import config, store
 
@@ -85,5 +85,7 @@ def write(day: str = "2026-01-05") -> dict:
     ev(c0 + 160, "reply", **conv, text="已添加“数据来源：metrics_W41.csv”。", tools=["Edit"])
     ev(c0 + 175, "prompt", **conv, text="可以")
 
-    counts = store.replace_source(SRC, evs)
+    # Synthetic events use milliseconds; replace this local day through its last millisecond.
+    until = (datetime.fromtimestamp(base) + timedelta(days=1)).timestamp() - 0.001
+    counts = store.replace_source(SRC, evs, base, until)
     return {"day": day, "events": counts.get(day, 0), "dir": str(ddir)}
